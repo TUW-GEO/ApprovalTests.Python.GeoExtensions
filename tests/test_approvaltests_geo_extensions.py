@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from pytest import ExitCode
+
 from factories import make_raster_at
 
 
@@ -71,12 +73,12 @@ def test_verify_geo_tif(testdir, tmp_path):
                               dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
 
     testdir.makepyfile(f"""
-            from approvaltests import Options
+            from pytest_approvaltests_geo import GeoOptions
             from approvaltests.scrubbers import scrub_all_dates
             from approval_utilities.utils import to_json
             def test_verify_geo_tif(verify_geo_tif):
                 verify_geo_tif("{tif_file.as_posix()}", 
-                    options=Options().with_scrubber(lambda t: scrub_all_dates(to_json(t))))
+                    options=GeoOptions().with_tags_scrubber(lambda t: scrub_all_dates(to_json(t))))
         """)
 
     result = testdir.runpytest('-v')
@@ -85,4 +87,4 @@ def test_verify_geo_tif(testdir, tmp_path):
         '+    "some": "<date0>"',
     ])
 
-    assert result.ret == 0
+    assert result.ret == ExitCode.TESTS_FAILED

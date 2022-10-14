@@ -1,13 +1,13 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
+import pytest
 from approvaltests import Options, verify_with_namer_and_writer, ExistingFileWriter, StackFrameNamer, Namer
 
 from pytest_approvaltests_geo._version import __version__
-import pytest
-
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
+from pytest_approvaltests_geo.scrubbers import TagsScrubber
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
 
@@ -47,7 +47,18 @@ def approved_geo_directory(approval_test_geo_data_root, request):
 
 
 class GeoOptions(Options):
-    ...
+    _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
+
+    def scrub_tags(self, data: Dict):
+        if self.has_tags_scrubber():
+            return self.fields[GeoOptions._TAGS_SCRUBBER_FUNC](data)
+        return data
+
+    def with_tags_scrubber(self, scrubber_func: TagsScrubber) -> "GeoOptions":
+        return GeoOptions({**self.fields, **{GeoOptions._TAGS_SCRUBBER_FUNC: scrubber_func}})
+
+    def has_tags_scrubber(self):
+        return GeoOptions._TAGS_SCRUBBER_FUNC in self.fields
 
 
 class StackFrameNamerWithExternalDataDir(StackFrameNamer):
@@ -68,7 +79,7 @@ def geo_data_namer(approved_geo_directory):
 def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
-                   options: Optional[Options] = None):
+                   options: Optional[GeoOptions] = None):
         geo_data_namer.set_extension(Path(tile_file).suffix)
         verify_geo_tif_with_namer(tile_file, geo_data_namer, options=options)
 
@@ -80,12 +91,12 @@ def verify_geo_tif_with_namer():
     def _verify_fn(tile_file: PathConvertible,
                    namer: Namer,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
-                   options: Optional[Options] = None):
-        options = options or Options()
-        if options.has_scrubber():
-            scrubber = options.fields["scrubber_func"]
-        options = options.with_comparator(CompareGeoTiffs(scrubber))
-        options = options.with_reporter(ReportGeoTiffs(scrubber))
+                   options: Optional[GeoOptions] = None):
+        options = options or GeoOptions()
+        tif_comparator = CompareGeoTiffs(options.scrub_tags)
+        tif_reporter = ReportGeoTiffs(options.scrub_tags)
+        options = options.with_comparator(tif_comparator)
+        options = options.with_reporter(tif_reporter)
         verify_with_namer_and_writer(
             namer=namer,
             writer=ExistingFileWriter(tile_file, options),
