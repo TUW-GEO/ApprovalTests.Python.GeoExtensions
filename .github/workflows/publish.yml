@@ -1,0 +1,42 @@
+name: Upload Python Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Determine version from git tag
+        id: version
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: set version
+        run: |
+          echo "__version__ = \"${{ steps.version.outputs.tag }}\"" > src/pytest_approvaltests_geo/_version.py
+      - name: Push changes
+        run: |
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git commit -m "e  update version tag: ${{ steps.version.outputs.tag }}" -a  || echo "nothing to commit"
+            git checkout -b temp
+            git fetch
+            git checkout main
+            git merge temp
+            remote="https://${GITHUB_ACTOR}:${{secrets.GITHUB_TOKEN}}@github.com/${GITHUB_REPOSITORY}.git"
+            branch="main"
+            git push "${remote}" ${branch} || echo "nothing to push"
+        shell: bash
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          make dist
+          python3 -m twine upload dist/*
+          rm -r dist
