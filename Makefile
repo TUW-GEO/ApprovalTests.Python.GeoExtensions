@@ -37,7 +37,7 @@ setup: .install.done
 	touch .install.test.done
 
 test: .install.test.done
-	pytest --verbose --color=yes --cov=eotransform --cov-report term-missing --doctest-modules
+	coverage run -m pytest --doctest-modules && coverage report -m
 
 version:
 	echo "__version__ = \"$(shell git describe --always --tags --abbrev=0)\"" > src/pytest_approvaltests_geo/_version.py
