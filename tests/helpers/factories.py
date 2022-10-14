@@ -12,7 +12,7 @@ def make_raster_at(values, file_path: Path, tags=None) -> Path:
                                                                     y=np.arange(values.shape[1]),
                                                                     x=np.arange(values.shape[2]),
                                                                     spatial_ref=0)))
-    array.rio.to_raster(file_path, tags=tags, compress='ZSTD')
+    array.rio.to_raster(file_path, tags=tags)
     return file_path
 
 
