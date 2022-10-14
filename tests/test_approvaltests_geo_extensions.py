@@ -73,7 +73,7 @@ def test_verify_geo_tif(testdir, tmp_path):
                               dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
 
     testdir.makepyfile(f"""
-            from pytest_approvaltests_geo import GeoOptions
+            from pytest_approvaltests_geo.geo_options import GeoOptions
             from approvaltests.scrubbers import scrub_all_dates
             from approval_utilities.utils import to_json
             def test_verify_geo_tif(verify_geo_tif):

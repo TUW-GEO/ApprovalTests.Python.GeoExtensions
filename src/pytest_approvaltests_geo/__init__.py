@@ -1,13 +1,15 @@
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Optional, Union
 
 import pytest
-from approvaltests import Options, verify_with_namer_and_writer, ExistingFileWriter, StackFrameNamer, Namer
+from approvaltests import verify_with_namer_and_writer, ExistingFileWriter, Namer
 
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
+from pytest_approvaltests_geo.geo_options import GeoOptions
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.scrubbers import TagsScrubber
+from pytest_approvaltests_geo.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
 
@@ -44,30 +46,6 @@ def approval_geo_input_directory(approval_test_geo_data_root, request):
 @pytest.fixture
 def approved_geo_directory(approval_test_geo_data_root, request):
     return approval_test_geo_data_root / request.config.getini('approvaltests_geo_approved')
-
-
-class GeoOptions(Options):
-    _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
-
-    def scrub_tags(self, data: Dict):
-        if self.has_tags_scrubber():
-            return self.fields[GeoOptions._TAGS_SCRUBBER_FUNC](data)
-        return data
-
-    def with_tags_scrubber(self, scrubber_func: TagsScrubber) -> "GeoOptions":
-        return GeoOptions({**self.fields, **{GeoOptions._TAGS_SCRUBBER_FUNC: scrubber_func}})
-
-    def has_tags_scrubber(self):
-        return GeoOptions._TAGS_SCRUBBER_FUNC in self.fields
-
-
-class StackFrameNamerWithExternalDataDir(StackFrameNamer):
-    def __init__(self, data_root):
-        super().__init__()
-        self._data_root = data_root
-
-    def get_directory(self) -> str:
-        return self._data_root
 
 
 @pytest.fixture
