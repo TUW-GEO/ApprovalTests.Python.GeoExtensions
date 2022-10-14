@@ -68,4 +68,4 @@ class ReportGeoTiffs(Reporter):
 
     @staticmethod
     def _create_empty_geotiff(path: Path):
-        DataArray([[0]], dims=['y', 'x']).rio.to_raster(path, compress='ZSTD')
+        DataArray([[0]], dims=['y', 'x']).rio.to_raster(path)
