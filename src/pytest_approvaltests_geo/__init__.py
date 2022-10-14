@@ -2,14 +2,16 @@ from pathlib import Path
 from typing import Optional, Union
 
 import pytest
-from approvaltests import verify_with_namer_and_writer, ExistingFileWriter, Namer
+import rasterio
+from approvaltests import verify_with_namer_and_writer, ExistingFileWriter
+from approvaltests.namer import NamerBase
 
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
 from pytest_approvaltests_geo.geo_options import GeoOptions
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.scrubbers import TagsScrubber
-from pytest_approvaltests_geo.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
+from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
 
@@ -67,12 +69,15 @@ def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer):
 @pytest.fixture
 def verify_geo_tif_with_namer():
     def _verify_fn(tile_file: PathConvertible,
-                   namer: Namer,
+                   namer: NamerBase,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
         options = options or GeoOptions()
         tif_comparator = CompareGeoTiffs(options.scrub_tags)
         tif_reporter = ReportGeoTiffs(options.scrub_tags)
+        if options.has_scenario_by_tags():
+            with rasterio.open(tile_file) as rds:
+                namer = options.wrap_namer_in_tags_scenario(namer, rds.tags())
         options = options.with_comparator(tif_comparator)
         options = options.with_reporter(tif_reporter)
         verify_with_namer_and_writer(

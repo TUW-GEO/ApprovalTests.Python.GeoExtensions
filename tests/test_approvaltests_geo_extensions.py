@@ -88,3 +88,38 @@ def test_verify_geo_tif(testdir, tmp_path):
     ])
 
     assert result.ret == ExitCode.TESTS_FAILED
+
+
+def test_verify_multiple_geo_tiffs(testdir, tmp_path):
+    root = tmp_path / "root"
+    input_data = root / "input"
+    approved = root / "approved"
+    input_data.mkdir(parents=True, exist_ok=True)
+    approved.mkdir(parents=True, exist_ok=True)
+
+    testdir.makeini(f"""
+        [pytest]
+        approvaltests_geo_data_root = {root.as_posix()}
+        approvaltests_geo_input = input
+        approvaltests_geo_approved = approved
+    """)
+
+    tif_a = make_raster_at([[42]], tmp_path / "a_tif_to_test.tif", dict(band='VV'))
+    tif_b = make_raster_at([[42]], tmp_path / "another_tif_to_test.tif", dict(band='VH'))
+
+    testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
+            def test_verify_multiple_geo_tiffs(verify_geo_tif):
+                gather_all_exceptions_and_throw(["{tif_a.as_posix()}", "{tif_b.as_posix()}"], 
+                    lambda tif: verify_geo_tif(tif, options=GeoOptions().with_scenario_by_tags(lambda t: (t['band'],))))
+        """)
+
+    result = testdir.runpytest('-v')
+
+    result.stdout.fnmatch_lines([
+        "*test_verify_multiple_geo_tiffs.VV.received.tif*",
+        "*test_verify_multiple_geo_tiffs.VH.received.tif*",
+    ])
+
+    assert result.ret == ExitCode.TESTS_FAILED
