@@ -9,9 +9,9 @@ from approvaltests.namer import NamerBase
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
 from pytest_approvaltests_geo.geo_options import GeoOptions
+from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.scrubbers import TagsScrubber
-from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
 
@@ -51,15 +51,16 @@ def approved_geo_directory(approval_test_geo_data_root, request):
 
 
 @pytest.fixture
-def geo_data_namer(approved_geo_directory):
-    return StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
+def geo_data_namer_factory(approved_geo_directory):
+    return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
 
 
 @pytest.fixture
-def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer):
+def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
+        geo_data_namer = geo_data_namer_factory()
         geo_data_namer.set_extension(Path(tile_file).suffix)
         verify_geo_tif_with_namer(tile_file, geo_data_namer, options=options)
 
