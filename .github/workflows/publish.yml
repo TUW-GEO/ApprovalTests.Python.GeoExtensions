@@ -23,6 +23,7 @@ jobs:
         run: |
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
+            git checkout main
             git commit -m "e  update version tag: ${{ steps.version.outputs.tag }}" -a  || echo "nothing to commit"
             git checkout -b temp
             git fetch
