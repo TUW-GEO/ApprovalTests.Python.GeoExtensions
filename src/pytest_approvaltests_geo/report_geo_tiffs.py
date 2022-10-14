@@ -1,6 +1,7 @@
 import os
 from difflib import unified_diff, context_diff
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from approval_utilities.utils import to_json
@@ -10,9 +11,13 @@ from approvaltests.scrubbers import scrub_all_dates, scrub_all_guids
 from xarray import DataArray
 
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
+from pytest_approvaltests_geo.scrubbers import TagsScrubber
 
 
 class ReportGeoTiffs(Reporter):
+    def __init__(self, tags_scrubber: Optional[TagsScrubber] = None):
+        self._tags_scrubber = tags_scrubber
+
     def report(self, received_path: str, approved_path: str) -> bool:
         received_path = Path(received_path)
         approved_path = Path(approved_path)
@@ -36,12 +41,13 @@ class ReportGeoTiffs(Reporter):
             print('\n'.join([diff_tags, diff_pixels_msg, to_approve_msg]))
         return True
 
-    @staticmethod
-    def _calculate_tags_diff(approved_path, approved_tags, received_path, received_tags):
-        approved_text = scrub_all_dates(f"{to_json(approved_tags)}\n")
-        received_text = scrub_all_dates(f"{to_json(received_tags)}\n")
-        approved_text = scrub_all_guids(approved_text)
-        received_text = scrub_all_guids(received_text)
+    def _calculate_tags_diff(self, approved_path, approved_tags, received_path, received_tags):
+        if self._tags_scrubber:
+            approved_text = f"{self._tags_scrubber(approved_tags)}"
+            received_text = f"{self._tags_scrubber(received_tags)}"
+        else:
+            approved_text = f"{to_json(approved_tags)}\n"
+            received_text = f"{to_json(received_tags)}\n"
         return "\n".join(unified_diff(
             approved_text.splitlines(),
             received_text.splitlines(),

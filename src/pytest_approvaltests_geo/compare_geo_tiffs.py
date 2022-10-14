@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Optional
 
 from approvaltests.core import Comparator
 
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
-
-TagsScrubber = Callable[[Dict], str]
+from pytest_approvaltests_geo.scrubbers import TagsScrubber
 
 
 class CompareGeoTiffs(Comparator):

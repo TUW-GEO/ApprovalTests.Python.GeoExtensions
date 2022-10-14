@@ -32,3 +32,14 @@ def test_report_meta_data_differences(reporter, tmp_path, capsys):
     assert reporter.report(received.as_posix(), approved.as_posix())
     output = capsys.readouterr().out
     assert '+    "some": "tag"' in output and '-    "some": "other"' in output
+
+
+def test_report_scrubbed_data(tmp_path, capsys):
+    scrubbing_reporter = ReportGeoTiffs(lambda tags: scrub_all_dates(to_json(tags)))
+    received = make_raster_at([[0, 0], [0, 0]], tmp_path / "received.tif",
+                              dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+    approved = make_raster_at([[2, 4], [-2, 1]], tmp_path / "approved.tif",
+                              dict(other=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+    assert scrubbing_reporter.report(received.as_posix(), approved.as_posix())
+    output = capsys.readouterr().out
+    assert '+    "some": "<date0>"' in output and '-    "other": "<date0>"' in output
