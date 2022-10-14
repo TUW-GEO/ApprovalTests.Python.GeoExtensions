@@ -1,5 +1,5 @@
 import os
-from difflib import unified_diff, context_diff
+from difflib import unified_diff
 from pathlib import Path
 from typing import Optional
 
@@ -7,7 +7,6 @@ import numpy as np
 from approval_utilities.utils import to_json
 from approvaltests import Reporter
 from approvaltests.reporters import get_command_text
-from approvaltests.scrubbers import scrub_all_dates, scrub_all_guids
 from xarray import DataArray
 
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
@@ -69,4 +68,4 @@ class ReportGeoTiffs(Reporter):
 
     @staticmethod
     def _create_empty_geotiff(path: Path):
-        DataArray().rio.to_raster(path, compress='ZSTD')
+        DataArray([[0]], dims=['y', 'x']).rio.to_raster(path, compress='ZSTD')

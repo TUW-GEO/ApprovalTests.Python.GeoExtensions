@@ -1,3 +1,8 @@
+from datetime import datetime
+
+from factories import make_raster_at
+
+
 def test_approvaltests_geo_data_settings(testdir):
     testdir.makeini("""
         [pytest]
@@ -43,6 +48,41 @@ def test_approval_test_geo_data_root_option(testdir):
 
     result.stdout.fnmatch_lines([
         '*::test_custom_approval_test_geo_data_root PASSED*',
+    ])
+
+    assert result.ret == 0
+
+
+def test_verify_geo_tif(testdir, tmp_path):
+    root = tmp_path / "root"
+    input_data = root / "input"
+    approved = root / "approved"
+    input_data.mkdir(parents=True, exist_ok=True)
+    approved.mkdir(parents=True, exist_ok=True)
+
+    testdir.makeini(f"""
+        [pytest]
+        approvaltests_geo_data_root = {root.as_posix()}
+        approvaltests_geo_input = input
+        approvaltests_geo_approved = approved
+    """)
+
+    tif_file = make_raster_at([[42]], tmp_path / "a_tif_to_test.tif",
+                              dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+
+    testdir.makepyfile(f"""
+            from approvaltests import Options
+            from approvaltests.scrubbers import scrub_all_dates
+            from approval_utilities.utils import to_json
+            def test_verify_geo_tif(verify_geo_tif):
+                verify_geo_tif("{tif_file.as_posix()}", 
+                    options=Options().with_scrubber(lambda t: scrub_all_dates(to_json(t))))
+        """)
+
+    result = testdir.runpytest('-v')
+
+    result.stdout.fnmatch_lines([
+        '+    "some": "<date0>"',
     ])
 
     assert result.ret == 0
