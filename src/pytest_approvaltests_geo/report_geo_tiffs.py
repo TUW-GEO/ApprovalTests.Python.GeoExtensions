@@ -51,7 +51,7 @@ class ReportGeoTiffs(Reporter):
 
     @staticmethod
     def _calculate_pixel_diff(approved_pixels, received_pixels):
-        diff_pixels = received_pixels - approved_pixels
+        diff_pixels = np.abs(received_pixels - approved_pixels)
         diff_min = np.nanmin(diff_pixels)
         diff_max = np.nanmax(diff_pixels)
         diff_mean = np.nanmean(diff_pixels)
