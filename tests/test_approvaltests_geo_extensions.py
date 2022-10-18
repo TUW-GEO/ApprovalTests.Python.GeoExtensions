@@ -1,8 +1,29 @@
 from datetime import datetime
+from pathlib import Path
 
+import pytest
 from pytest import ExitCode
 
 from factories import make_raster_at
+
+
+@pytest.fixture
+def standard_approval_test_directory():
+    return Path(__file__).parent
+
+
+@pytest.fixture
+def make_tmp_approval_raster(standard_approval_test_directory):
+    creates_files = []
+    try:
+        def _fn(values, name):
+            file = make_raster_at(values, standard_approval_test_directory / name)
+            creates_files.append(file)
+
+        yield _fn
+    finally:
+        for f in creates_files:
+            f.unlink()
 
 
 def test_approvaltests_geo_data_settings(testdir):
@@ -123,3 +144,17 @@ def test_verify_multiple_geo_tiffs(testdir, tmp_path):
     ])
 
     assert result.ret == ExitCode.TESTS_FAILED
+
+
+def test_verify_raster_as_geo_tif(testdir, make_tmp_approval_raster):
+    make_tmp_approval_raster([[42]], "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
+    testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.factories import make_raster
+            from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
+            def test_verify_raster_as_geo_tif(verify_raster_as_geo_tif):
+                verify_raster_as_geo_tif(make_raster([[42]]))
+        """)
+
+    result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK

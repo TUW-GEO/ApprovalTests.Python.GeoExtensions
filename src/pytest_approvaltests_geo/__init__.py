@@ -4,7 +4,8 @@ from typing import Optional, Union
 import pytest
 import rasterio
 from approvaltests import verify_with_namer_and_writer, ExistingFileWriter
-from approvaltests.namer import NamerBase
+from approvaltests.namer import NamerBase, StackFrameNamer
+from xarray import DataArray
 
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
@@ -37,22 +38,34 @@ def approval_test_geo_data_root(request):
     custom_root = request.config.option.approval_test_geo_data_root
     if custom_root is not None:
         return Path(custom_root)
-    return Path(request.config.getini('approvaltests_geo_data_root'))
+
+    root = request.config.getini('approvaltests_geo_data_root')
+    if root:
+        return Path(root)
+    return None
 
 
 @pytest.fixture
 def approval_geo_input_directory(approval_test_geo_data_root, request):
-    return approval_test_geo_data_root / request.config.getini('approvaltests_geo_input')
+    if approval_test_geo_data_root is not None:
+        return approval_test_geo_data_root / request.config.getini('approvaltests_geo_input')
+    return None
 
 
 @pytest.fixture
 def approved_geo_directory(approval_test_geo_data_root, request):
-    return approval_test_geo_data_root / request.config.getini('approvaltests_geo_approved')
+    if approval_test_geo_data_root is not None:
+        return approval_test_geo_data_root / request.config.getini('approvaltests_geo_approved')
+    return None
 
 
 @pytest.fixture
 def geo_data_namer_factory(approved_geo_directory):
-    return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
+    if approved_geo_directory is not None:
+        return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
+    else:
+        from approvaltests.namer.default_name import get_default_namer
+        return get_default_namer
 
 
 @pytest.fixture
@@ -85,5 +98,17 @@ def verify_geo_tif_with_namer():
             namer=namer,
             writer=ExistingFileWriter(tile_file, options),
             options=options)
+
+    return _verify_fn
+
+
+@pytest.fixture
+def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
+    def _verify_fn(tile: DataArray,
+                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                   options: Optional[GeoOptions] = None):
+        tile_file = tmp_path_factory.mktemp("raster_as_geo_tif") / "raster.tif"
+        tile.rio.to_raster(tile_file)
+        verify_geo_tif(tile_file, options=options)
 
     return _verify_fn
