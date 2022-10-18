@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, Callable
 
-from approvaltests import Options, ScenarioNamer
+from approvaltests import Options, ScenarioNamer, Namer
 from approvaltests.namer import NamerBase
 
 from pytest_approvaltests_geo.scrubbers import TagsScrubber
@@ -9,6 +9,10 @@ from pytest_approvaltests_geo.scrubbers import TagsScrubber
 class GeoOptions(Options):
     _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
     _NAMER_WRAPPER_SCENARIO_BY_TAGS = "NamerWrapperScenarioByTags"
+
+    @classmethod
+    def from_options(cls, options: Options) -> "GeoOptions":
+        return GeoOptions(options.fields)
 
     def scrub_tags(self, data: Dict):
         if self.has_tags_scrubber():
@@ -30,3 +34,7 @@ class GeoOptions(Options):
     def wrap_namer_in_tags_scenario(self, namer: NamerBase, tags: Dict):
         if self.has_scenario_by_tags():
             return ScenarioNamer(namer, *self.fields[GeoOptions._NAMER_WRAPPER_SCENARIO_BY_TAGS](tags))
+
+    @property
+    def namer(self) -> Namer:
+        return self.fields.get("namer")

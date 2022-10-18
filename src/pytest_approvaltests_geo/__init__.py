@@ -73,7 +73,8 @@ def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
-        geo_data_namer = geo_data_namer_factory()
+        geo_data_namer = options.namer if options else None
+        geo_data_namer = geo_data_namer or geo_data_namer_factory()
         geo_data_namer.set_extension(Path(tile_file).suffix)
         verify_geo_tif_with_namer(tile_file, geo_data_namer, options=options)
 
