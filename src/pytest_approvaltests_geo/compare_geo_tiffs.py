@@ -17,17 +17,17 @@ class CompareGeoTiffs(Comparator):
         if not received_path.exists() or not approved_path.exists():
             return False
 
-        received_pixels, received_tags = read_array_and_tags(received_path)
-        approved_pixels, approved_tags = read_array_and_tags(approved_path)
+        with read_array_and_tags(received_path) as (received_pixels, received_tags), \
+                read_array_and_tags(approved_path) as (approved_pixels, approved_tags):
 
-        if received_pixels.shape != approved_pixels.shape:
-            return False
+            if received_pixels.shape != approved_pixels.shape:
+                return False
 
-        if self._tags_scrubber:
-            received_tags = self._tags_scrubber(received_tags)
-            approved_tags = self._tags_scrubber(approved_tags)
+            if self._tags_scrubber:
+                received_tags = self._tags_scrubber(received_tags)
+                approved_tags = self._tags_scrubber(approved_tags)
 
-        if received_tags != approved_tags:
-            return False
+            if received_tags != approved_tags:
+                return False
 
-        return received_pixels.equals(approved_pixels)
+            return received_pixels.equals(approved_pixels)

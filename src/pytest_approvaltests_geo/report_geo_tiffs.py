@@ -24,21 +24,20 @@ class ReportGeoTiffs(Reporter):
         if not approved_path.is_file():
             self._create_empty_geotiff(approved_path)
 
-        received_pixels, received_tags = read_array_and_tags(received_path)
-        approved_pixels, approved_tags = read_array_and_tags(approved_path)
+        with read_array_and_tags(received_path) as (received_pixels, received_tags), \
+                read_array_and_tags(approved_path) as (approved_pixels, approved_tags):
+            diff_tags = self._calculate_tags_diff(approved_path, approved_tags, received_path, received_tags)
+            diff_pixels_msg = self._calculate_pixel_diff(approved_pixels, received_pixels)
 
-        diff_tags = self._calculate_tags_diff(approved_path, approved_tags, received_path, received_tags)
-        diff_pixels_msg = self._calculate_pixel_diff(approved_pixels, received_pixels)
-
-        if diff_tags:
-            diff_tags = f"Differences in meta data:\n{diff_tags}"
-        if diff_pixels_msg:
-            diff_pixels_msg = f"Differences in pixel data:\n{diff_pixels_msg}"
-        if diff_tags or diff_pixels_msg:
-            to_approve_msg = \
-                f"To approve run:\n {get_command_text(received_path.as_posix(), approved_path.as_posix())}"
-            print('\n'.join([diff_tags, diff_pixels_msg, to_approve_msg]))
-        return True
+            if diff_tags:
+                diff_tags = f"Differences in meta data:\n{diff_tags}"
+            if diff_pixels_msg:
+                diff_pixels_msg = f"Differences in pixel data:\n{diff_pixels_msg}"
+            if diff_tags or diff_pixels_msg:
+                to_approve_msg = \
+                    f"To approve run:\n {get_command_text(received_path.as_posix(), approved_path.as_posix())}"
+                print('\n'.join([diff_tags, diff_pixels_msg, to_approve_msg]))
+            return True
 
     def _calculate_tags_diff(self, approved_path, approved_tags, received_path, received_tags):
         if self._tags_scrubber:
