@@ -143,17 +143,19 @@ def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
 
 @pytest.fixture
 def verify_geo_zarr(geo_data_namer_factory):
-    def _verify_fn(tile_file):
+    def _verify_fn(zarr_archive: PathConvertible,
+                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                   options: Optional[GeoOptions] = None):
         geo_data_namer = geo_data_namer_factory()
-        geo_data_namer.set_extension(Path(tile_file).suffix)
-        options = GeoOptions()
-        zarr_comparator = CompareGeoZarrs(options.scrub_tags)
-        zarr_reporter = ReportGeoZarrs(options.scrub_tags)
+        geo_data_namer.set_extension(Path(zarr_archive).suffix)
+        options = options or GeoOptions()
+        zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.tolerance)
+        zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.tolerance)
         options = options.with_comparator(zarr_comparator)
         options = options.with_reporter(zarr_reporter)
         verify_with_namer_and_writer(
             namer=geo_data_namer,
-            writer=ExistingDirWriter(tile_file),
+            writer=ExistingDirWriter(zarr_archive),
             options=options)
 
     return _verify_fn

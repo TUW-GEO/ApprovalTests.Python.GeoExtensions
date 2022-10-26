@@ -1,4 +1,3 @@
-import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -25,20 +24,6 @@ def make_tmp_approval_tif(standard_approval_test_directory):
     finally:
         for f in creates_files:
             f.unlink()
-
-
-@pytest.fixture
-def make_tmp_approval_zarr(standard_approval_test_directory):
-    creates_archives = []
-    try:
-        def _fn(values, name, ds_attrs=None, array_attrs=None):
-            file = make_zarr_at(values, standard_approval_test_directory / name, ds_attrs, array_attrs)
-            creates_archives.append(file)
-
-        yield _fn
-    finally:
-        for a in creates_archives:
-            shutil.rmtree(a)
 
 
 def test_approvaltests_geo_data_settings(testdir, tmp_path):
@@ -122,18 +107,7 @@ def test_skip_tests_which_request_approval_root_but_it_does_not_exist(testdir, t
 
 
 def test_verify_geo_tif(testdir, tmp_path):
-    root = tmp_path / "root"
-    input_data = root / "input"
-    approved = root / "approved"
-    input_data.mkdir(parents=True, exist_ok=True)
-    approved.mkdir(parents=True, exist_ok=True)
-
-    testdir.makeini(f"""
-        [pytest]
-        approvaltests_geo_data_root = {root.as_posix()}
-        approvaltests_geo_input = input
-        approvaltests_geo_approved = approved
-    """)
+    make_standard_geo_data_setting(testdir, tmp_path)
 
     tif_file = make_raster_at([[42]], tmp_path / "a_tif_to_test.tif",
                               dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
@@ -156,19 +130,24 @@ def test_verify_geo_tif(testdir, tmp_path):
     assert result.ret == ExitCode.TESTS_FAILED
 
 
-def test_verify_multiple_geo_tiffs(testdir, tmp_path):
+def make_standard_geo_data_setting(testdir, tmp_path):
     root = tmp_path / "root"
     input_data = root / "input"
     approved = root / "approved"
     input_data.mkdir(parents=True, exist_ok=True)
     approved.mkdir(parents=True, exist_ok=True)
-
     testdir.makeini(f"""
         [pytest]
         approvaltests_geo_data_root = {root.as_posix()}
         approvaltests_geo_input = input
         approvaltests_geo_approved = approved
     """)
+
+    return root, input_data, approved
+
+
+def test_verify_multiple_geo_tiffs(testdir, tmp_path):
+    make_standard_geo_data_setting(testdir, tmp_path)
 
     tif_a = make_raster_at([[42]], tmp_path / "a_tif_to_test.tif", dict(band='VV'))
     tif_b = make_raster_at([[42]], tmp_path / "another_tif_to_test.tif", dict(band='VH'))
@@ -228,10 +207,13 @@ def test_verify_multiple_rasters_as_geo_tif(testdir, make_tmp_approval_tif):
     assert result.ret == ExitCode.OK
 
 
-def test_verify_geo_zarr(testdir, make_tmp_approval_zarr, tmp_path):
+def test_verify_geo_zarr(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+
     zarr_file = make_zarr_at([[1.0]], tmp_path / "a_zarr_to_test.zarr",
                              dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
-    make_tmp_approval_zarr([[1.1]], "test_approvaltests_geo_extensions.test_verify_geo_zarr.approved.zarr")
+    make_zarr_at([[1.1]], approved_dir / "test_approvaltests_geo_extensions.test_verify_geo_zarr.approved.zarr",
+                 dict(some=datetime(2022, 1, 2).strftime("%Y-%m-%d %H:%M:%S")))
     testdir.makepyfile(f"""
             from pytest_approvaltests_geo.geo_options import GeoOptions
             from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
