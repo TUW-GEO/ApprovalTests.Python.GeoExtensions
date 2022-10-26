@@ -1,37 +1,16 @@
 import os
-from dataclasses import dataclass
 from difflib import unified_diff
-from enum import Enum
 from pathlib import Path
-from typing import Sequence, Optional, Mapping
+from typing import Sequence, Optional
 
 import numpy as np
 from approval_utilities.utils import to_json
 from recursive_diff import recursive_diff
 
+from pytest_approvaltests_geo.difference import DiffType, Difference
+from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
-
-
-class DiffType(Enum):
-    TAGS = 0
-    PIXEL_STATS = 1,
-    PIXEL = 2,
-
-
-@dataclass
-class Difference:
-    description: str
-    type: DiffType
-
-
-@dataclass
-class Tolerance:
-    rel: float = 1e-09
-    abs: float = 0.0
-
-    def to_kwargs(self) -> Mapping:
-        return dict(rel_tol=self.rel, abs_tol=self.abs)
 
 
 class DifferOfGeoTiffs:

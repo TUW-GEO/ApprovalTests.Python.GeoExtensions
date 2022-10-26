@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Callable, Optional
 from approvaltests import Options, ScenarioNamer, Namer
 from approvaltests.namer import NamerBase
 
-from pytest_approvaltests_geo.differ_of_geo_tiffs import Tolerance
+from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 

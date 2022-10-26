@@ -5,7 +5,7 @@ from approvaltests.scrubbers import scrub_all_dates
 
 from factories import make_raster_at
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
-from pytest_approvaltests_geo.differ_of_geo_tiffs import Tolerance
+from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 
 
@@ -41,7 +41,7 @@ def test_compare_geo_tiffs_applies_scrubbers_to_tags(tmp_path):
 
 
 def test_compare_geo_tiffs_floats_with_tolerances(tmp_path):
-    tolerant_comparator = CompareGeoTiffs(float_tolerance=Tolerance(rel=0.008, abs=0.002))
+    tolerant_comparator = CompareGeoTiffs(float_tolerance=Tolerance(rel=0.008, abs=0.0021))
     received = make_raster_at([[-1.01]], tmp_path / "received.tif")
     approved = make_raster_at([[-1.0]], tmp_path / "approved.tif")
     assert tolerant_comparator.compare(received.as_posix(), approved.as_posix())

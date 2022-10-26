@@ -4,7 +4,8 @@ from approvaltests import Reporter
 from approvaltests.reporters import get_command_text
 from xarray import DataArray
 
-from pytest_approvaltests_geo.differ_of_geo_tiffs import DifferOfGeoTiffs, DiffType
+from pytest_approvaltests_geo.differ_of_geo_tiffs import DifferOfGeoTiffs
+from pytest_approvaltests_geo.difference import DiffType
 
 
 class ReportGeoTiffs(Reporter, DifferOfGeoTiffs):
