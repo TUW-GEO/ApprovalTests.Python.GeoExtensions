@@ -26,20 +26,26 @@ def make_tmp_approval_raster(standard_approval_test_directory):
             f.unlink()
 
 
-def test_approvaltests_geo_data_settings(testdir):
-    testdir.makeini("""
+def test_approvaltests_geo_data_settings(testdir, tmp_path):
+    approval_root = tmp_path / "path/to/my/approved/geo/data/root/"
+    approval_root.mkdir(parents=True, exist_ok=True)
+    approval_input = approval_root / "subdir/to/input/data/"
+    approval_input.mkdir(parents=True, exist_ok=True)
+    approval_approved = approval_root / "subdir/to/approved/data/"
+    approval_approved.mkdir(parents=True, exist_ok=True)
+    testdir.makeini(f"""
         [pytest]
-        approvaltests_geo_data_root = /path/to/my/approved/geo/data/root/
+        approvaltests_geo_data_root = {approval_root}
         approvaltests_geo_input = subdir/to/input/data/
         approvaltests_geo_approved = subdir/to/approved/data/
     """)
 
-    testdir.makepyfile("""
+    testdir.makepyfile(f"""
         import pytest
         def test_approved_geo_paths(approval_test_geo_data_root, approval_geo_input_directory, approved_geo_directory):
-            assert approval_test_geo_data_root.as_posix() == '/path/to/my/approved/geo/data/root'
-            assert approval_geo_input_directory.as_posix() == '/path/to/my/approved/geo/data/root/subdir/to/input/data'
-            assert approved_geo_directory.as_posix() == '/path/to/my/approved/geo/data/root/subdir/to/approved/data'
+            assert approval_test_geo_data_root.as_posix() == '{approval_root.as_posix()}'
+            assert approval_geo_input_directory.as_posix() == '{approval_input.as_posix()}'
+            assert approved_geo_directory.as_posix() == '{approval_approved.as_posix()}'
     """)
 
     result = testdir.runpytest('-v')
@@ -51,7 +57,10 @@ def test_approvaltests_geo_data_settings(testdir):
     assert result.ret == 0
 
 
-def test_approval_test_geo_data_root_option(testdir):
+def test_approval_test_geo_data_root_option(testdir, tmp_path):
+    custom_approval_root = tmp_path / "custom/path/to/my/approved/geo/data/root/"
+    custom_approval_root.mkdir(parents=True, exist_ok=True)
+
     testdir.makeini("""
         [pytest]
         approvaltests_geo_data_root = /default/path/to/geo/test/data/root/
@@ -59,18 +68,39 @@ def test_approval_test_geo_data_root_option(testdir):
         approvaltests_geo_approved = subdir/to/approved/data/
     """)
 
-    testdir.makepyfile("""
+    testdir.makepyfile(f"""
         def test_custom_approval_test_geo_data_root(approval_test_geo_data_root):
-            assert approval_test_geo_data_root.as_posix() == "/custom/geo/data/root"
+            assert approval_test_geo_data_root.as_posix() == "{custom_approval_root.as_posix()}"
     """)
 
     result = testdir.runpytest(
-        '--approval-test-geo-data-root=/custom/geo/data/root',
+        f'--approval-test-geo-data-root={custom_approval_root.as_posix()}',
         '-v'
     )
 
     result.stdout.fnmatch_lines([
         '*::test_custom_approval_test_geo_data_root PASSED*',
+    ])
+
+    assert result.ret == 0
+
+
+def test_skip_tests_which_request_approval_root_but_it_does_not_exist(testdir, tmp_path):
+    testdir.makeini("""
+        [pytest]
+        approvaltests_geo_data_root = /nonexistent/path/to/geo/test/data/root/
+        approvaltests_geo_input = subdir/to/input/data/
+        approvaltests_geo_approved = subdir/to/approved/data/
+    """)
+
+    testdir.makepyfile(f"""
+        def test_skipped_because_of_missing_approval_root(approval_geo_input_directory):
+            assert False
+    """)
+
+    result = testdir.runpytest('-v')
+    result.stdout.fnmatch_lines([
+        '*::test_skipped_because_of_missing_approval_root SKIPPED*',
     ])
 
     assert result.ret == 0
@@ -180,6 +210,5 @@ def test_verify_multiple_rasters_as_geo_tif(testdir, make_tmp_approval_raster):
         """)
 
     result = testdir.runpytest(Path(testdir.tmpdir), '-v')
-
 
     assert result.ret == ExitCode.OK

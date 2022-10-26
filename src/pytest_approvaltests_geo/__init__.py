@@ -33,6 +33,29 @@ def pytest_addoption(parser):
                   'Subdirectory within the approval test geo data root containing your approved files', type='string')
 
 
+def get_approval_root(config):
+    custom_root = config.option.approval_test_geo_data_root
+    if custom_root is not None:
+        return Path(custom_root)
+
+    root = config.getini('approvaltests_geo_data_root')
+    if root:
+        return Path(root)
+    return None
+
+
+def pytest_collection_modifyitems(config, items):
+    approval_root = get_approval_root(config)
+    if approval_root:
+        skip_reason = f"needs {approval_root} to run."
+    else:
+        skip_reason = "needs an approval directory configured to run."
+    skip_missing_dataset = pytest.mark.skip(reason=skip_reason)
+    for item in items:
+        if "approval_test_geo_data_root" in item.fixturenames and (approval_root is None or not approval_root.exists()):
+            item.add_marker(skip_missing_dataset)
+
+
 @pytest.fixture
 def approval_test_geo_data_root(request):
     custom_root = request.config.option.approval_test_geo_data_root
