@@ -1,14 +1,16 @@
-from typing import Dict, Tuple, Callable
+from typing import Dict, Tuple, Callable, Optional
 
 from approvaltests import Options, ScenarioNamer, Namer
 from approvaltests.namer import NamerBase
 
+from pytest_approvaltests_geo.differ_of_geo_tiffs import Tolerance
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 
 class GeoOptions(Options):
     _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
     _NAMER_WRAPPER_SCENARIO_BY_TAGS = "NamerWrapperScenarioByTags"
+    _TOLERANCE = "tolerance"
 
     @classmethod
     def from_options(cls, options: Options) -> "GeoOptions":
@@ -38,3 +40,10 @@ class GeoOptions(Options):
     @property
     def namer(self) -> Namer:
         return self.fields.get("namer")
+
+    def with_tolerance(self, rel_tol: float = 1e-9, abs_tol: float = 0):
+        return GeoOptions({**self.fields, **{GeoOptions._TOLERANCE: Tolerance(rel_tol, abs_tol)}})
+
+    @property
+    def tolerance(self) -> Optional[Tolerance]:
+        return self.fields.get(GeoOptions._TOLERANCE)

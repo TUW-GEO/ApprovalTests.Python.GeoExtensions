@@ -148,11 +148,13 @@ def test_verify_multiple_geo_tiffs(testdir, tmp_path):
 
 
 def test_verify_raster_as_geo_tif(testdir, make_tmp_approval_raster):
-    make_tmp_approval_raster([[42]], "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
+    make_tmp_approval_raster([[1.1]], "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
     testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
             from pytest_approvaltests_geo.factories import make_raster
             def test_verify_raster_as_geo_tif(verify_raster_as_geo_tif):
-                verify_raster_as_geo_tif(make_raster([[42]]))
+                verify_raster_as_geo_tif(make_raster([[1.0]]), options=GeoOptions()\\
+                    .with_tolerance(rel_tol=0.05, abs_tol=0.051))
         """)
 
     result = testdir.runpytest(Path(testdir.tmpdir), '-v')

@@ -88,8 +88,8 @@ def verify_geo_tif_with_namer():
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
         options = options or GeoOptions()
-        tif_comparator = CompareGeoTiffs(options.scrub_tags)
-        tif_reporter = ReportGeoTiffs(options.scrub_tags)
+        tif_comparator = CompareGeoTiffs(options.scrub_tags, options.tolerance)
+        tif_reporter = ReportGeoTiffs(options.scrub_tags, options.tolerance)
         if options.has_scenario_by_tags():
             with rasterio.open(tile_file) as rds:
                 namer = options.wrap_namer_in_tags_scenario(namer, rds.tags())
