@@ -43,3 +43,7 @@ def scrub_tuple_recursive(tags: Tuple, scrubber: Scrubber) -> Tuple:
 
 def make_scrubber_recurse(scrubber: Scrubber) -> RecursiveScrubber:
     return lambda elems: scrub_recursive(elems, scrubber)
+
+
+def identity_recursive_scrubber(tags: Dict) -> Dict:
+    return tags
