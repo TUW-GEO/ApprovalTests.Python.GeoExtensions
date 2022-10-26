@@ -95,11 +95,12 @@ def test_verify_geo_tif(testdir, tmp_path):
 
     testdir.makepyfile(f"""
             from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
             from approvaltests.scrubbers import scrub_all_dates
             from approval_utilities.utils import to_json
             def test_verify_geo_tif(verify_geo_tif):
                 verify_geo_tif("{tif_file.as_posix()}", 
-                    options=GeoOptions().with_tags_scrubber(lambda t: scrub_all_dates(to_json(t))))
+                    options=GeoOptions().with_tags_scrubber(make_scrubber_recurse(scrub_all_dates)))
         """)
 
     result = testdir.runpytest('-v')

@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Callable
 from approvaltests import Options, ScenarioNamer, Namer
 from approvaltests.namer import NamerBase
 
-from pytest_approvaltests_geo.scrubbers import TagsScrubber
+from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 
 class GeoOptions(Options):
@@ -19,7 +19,7 @@ class GeoOptions(Options):
             return self.fields[GeoOptions._TAGS_SCRUBBER_FUNC](data)
         return data
 
-    def with_tags_scrubber(self, scrubber_func: TagsScrubber) -> "GeoOptions":
+    def with_tags_scrubber(self, scrubber_func: RecursiveScrubber) -> "GeoOptions":
         return GeoOptions({**self.fields, **{GeoOptions._TAGS_SCRUBBER_FUNC: scrubber_func}})
 
     def has_tags_scrubber(self):

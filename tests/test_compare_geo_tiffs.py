@@ -1,11 +1,11 @@
 from datetime import datetime
 
 import pytest
-from approval_utilities.utils import to_json
 from approvaltests.scrubbers import scrub_all_dates
 
 from factories import make_raster_at
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
+from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def test_compare_geo_tiffs_with_differing_pixels(comparator, tmp_path):
 
 
 def test_compare_geo_tiffs_applies_scrubbers_to_tags(tmp_path):
-    scrubbing_comparator = CompareGeoTiffs(lambda tags: scrub_all_dates(to_json(tags)))
+    scrubbing_comparator = CompareGeoTiffs(make_scrubber_recurse(scrub_all_dates))
     received = make_raster_at([[42]], tmp_path / "received.tif",
                               dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
     approved = make_raster_at([[42]], tmp_path / "approved.tif",

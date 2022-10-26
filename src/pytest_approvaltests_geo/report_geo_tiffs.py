@@ -11,6 +11,7 @@ class ReportGeoTiffs(Reporter, DifferOfGeoTiffs):
     DIFF_TYPE_PREFIXES = {
         DiffType.TAGS: "Differences in meta data:\n",
         DiffType.PIXEL_STATS: "Differences in pixel data:\n",
+        DiffType.PIXEL: "Differences in pixels:\n",
     }
 
     def report(self, received_path: str, approved_path: str) -> bool:

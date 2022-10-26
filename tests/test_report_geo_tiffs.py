@@ -1,11 +1,11 @@
 from datetime import datetime
 
 import pytest
-from approval_utilities.utils import to_json
-from approvaltests.scrubbers import scrub_all_dates
+from approvaltests.scrubbers import create_regex_scrubber
 
 from factories import make_raster_at
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
+from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 
 
 @pytest.fixture
@@ -35,11 +35,17 @@ def test_report_meta_data_differences(reporter, tmp_path, capsys):
 
 
 def test_report_scrubbed_data(tmp_path, capsys):
-    scrubbing_reporter = ReportGeoTiffs(lambda tags: scrub_all_dates(to_json(tags)))
+    date_scrubber = create_regex_scrubber(
+        r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}", lambda t: f"<date{t}>"
+    )
+    scrubbing_reporter = ReportGeoTiffs(make_scrubber_recurse(date_scrubber))
     received = make_raster_at([[0, 0], [0, 0]], tmp_path / "received.tif",
-                              dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+                              {"some": datetime(2022, 1, 1).strftime("%Y-%m-%dT%H-%M-%S"),
+                               datetime(2022, 2, 1).strftime("%Y-%m-%dT%H-%M-%S"): 42})
     approved = make_raster_at([[2, 4], [-2, 1]], tmp_path / "approved.tif",
-                              dict(other=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+                              {"other": datetime(2022, 1, 1).strftime("%Y-%m-%dT%H-%M-%S"),
+                               datetime(2022, 2, 1).strftime("%Y-%m-%dT%H-%M-%S"): 21})
     assert scrubbing_reporter.report(received.as_posix(), approved.as_posix())
     output = capsys.readouterr().out
     assert '+    "some": "<date0>"' in output and '-    "other": "<date0>"' in output
+    assert '+    "<date0>": "42"' in output and '-    "<date0>": "21"' in output

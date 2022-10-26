@@ -7,14 +7,16 @@ from typing import Sequence, Optional
 
 import numpy as np
 from approval_utilities.utils import to_json
+from recursive_diff import recursive_diff
 
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
-from pytest_approvaltests_geo.scrubbers import TagsScrubber
+from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 
 class DiffType(Enum):
     TAGS = 0
-    PIXEL_STATS = 0
+    PIXEL_STATS = 1,
+    PIXEL = 2,
 
 
 @dataclass
@@ -24,25 +26,32 @@ class Difference:
 
 
 class DifferOfGeoTiffs:
-    def __init__(self, tags_scrubber: Optional[TagsScrubber] = None):
-        self._tags_scrubber = tags_scrubber
+    def __init__(self, recursive_scrubber: Optional[RecursiveScrubber] = None):
+        self._recursive_scrubber = recursive_scrubber
 
     def diffs(self, received_path: Path, approved_path: Path) -> Sequence[Difference]:
         diffs = []
         with read_array_and_tags(received_path) as (received_pixels, received_tags), \
                 read_array_and_tags(approved_path) as (approved_pixels, approved_tags):
-            diff_tags = self._calculate_tags_diff(approved_path, approved_tags, received_path, received_tags)
+            diff_tags = self._calculate_recursive_diff(approved_path, approved_tags, received_path, received_tags)
             if diff_tags:
                 diffs.append(Difference(diff_tags, DiffType.TAGS))
-            diff_pixels = self._calculate_pixel_diff(approved_pixels, received_pixels)
-            if diff_pixels:
-                diffs.append(Difference(diff_pixels, DiffType.PIXEL_STATS))
+            diff_pixel_stats = self._calculate_pixel_diff(approved_pixels, received_pixels)
+            if diff_pixel_stats:
+                diffs.append(Difference(diff_pixel_stats, DiffType.PIXEL_STATS))
+
+            if self._recursive_scrubber:
+                approved_pixels.attrs = self._recursive_scrubber(approved_pixels.attrs)
+                received_pixels.attrs = self._recursive_scrubber(received_pixels.attrs)
+
+            diff_pixels = recursive_diff(approved_pixels, received_pixels)
+            diffs.extend(Difference(d, DiffType.PIXEL) for d in diff_pixels)
         return diffs
 
-    def _calculate_tags_diff(self, approved_path, approved_tags, received_path, received_tags):
-        if self._tags_scrubber:
-            approved_text = f"{self._tags_scrubber(approved_tags)}"
-            received_text = f"{self._tags_scrubber(received_tags)}"
+    def _calculate_recursive_diff(self, approved_path, approved_tags, received_path, received_tags):
+        if self._recursive_scrubber:
+            approved_text = f"{to_json(self._recursive_scrubber(approved_tags))}\n"
+            received_text = f"{to_json(self._recursive_scrubber(received_tags))}\n"
         else:
             approved_text = f"{to_json(approved_tags)}\n"
             received_text = f"{to_json(received_tags)}\n"
