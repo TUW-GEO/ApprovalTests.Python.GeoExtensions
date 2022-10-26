@@ -36,16 +36,21 @@ class DifferOfGeoTiffs:
             diff_tags = self._calculate_recursive_diff(approved_path, approved_tags, received_path, received_tags)
             if diff_tags:
                 diffs.append(Difference(diff_tags, DiffType.TAGS))
-            diff_pixel_stats = self._calculate_pixel_diff(approved_pixels, received_pixels)
-            if diff_pixel_stats:
-                diffs.append(Difference(diff_pixel_stats, DiffType.PIXEL_STATS))
+            diff_px_stats = self._calculate_pixel_diff(approved_pixels, received_pixels)
+            if diff_px_stats:
+                diffs.append(Difference(diff_px_stats, DiffType.PIXEL_STATS))
 
             if self._recursive_scrubber:
                 approved_pixels.attrs = self._recursive_scrubber(approved_pixels.attrs)
                 received_pixels.attrs = self._recursive_scrubber(received_pixels.attrs)
 
-            diff_pixels = recursive_diff(approved_pixels, received_pixels)
-            diffs.extend(Difference(d, DiffType.PIXEL) for d in diff_pixels)
+            diff_px = list(recursive_diff(approved_pixels, received_pixels))
+            n_differing_pixels = len(diff_px)
+            if n_differing_pixels > 0:
+                if n_differing_pixels > 10:
+                    half = n_differing_pixels // 2
+                    diff_px = diff_px[:3] + ["..."] + diff_px[half - 1:half + 2] + ["..."] + diff_px[-3:]
+                diffs.append(Difference('\n'.join(diff_px), DiffType.PIXEL))
         return diffs
 
     def _calculate_recursive_diff(self, approved_path, approved_tags, received_path, received_tags):
