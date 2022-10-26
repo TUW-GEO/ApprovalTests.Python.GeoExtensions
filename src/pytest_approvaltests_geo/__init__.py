@@ -9,9 +9,12 @@ from xarray import DataArray
 
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
+from pytest_approvaltests_geo.compare_geo_zarrs import CompareGeoZarrs
+from pytest_approvaltests_geo.existing_dir_writer import ExistingDirWriter
 from pytest_approvaltests_geo.geo_options import GeoOptions
 from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
 from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
+from pytest_approvaltests_geo.report_geo_zarrs import ReportGeoZarrs
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
@@ -134,5 +137,23 @@ def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
         tile_file = tmp_path_factory.mktemp("raster_as_geo_tif") / "raster.tif"
         tile.rio.to_raster(tile_file)
         verify_geo_tif(tile_file, options=options)
+
+    return _verify_fn
+
+
+@pytest.fixture
+def verify_geo_zarr(geo_data_namer_factory):
+    def _verify_fn(tile_file):
+        geo_data_namer = geo_data_namer_factory()
+        geo_data_namer.set_extension(Path(tile_file).suffix)
+        options = GeoOptions()
+        zarr_comparator = CompareGeoZarrs(options.scrub_tags)
+        zarr_reporter = ReportGeoZarrs(options.scrub_tags)
+        options = options.with_comparator(zarr_comparator)
+        options = options.with_reporter(zarr_reporter)
+        verify_with_namer_and_writer(
+            namer=geo_data_namer,
+            writer=ExistingDirWriter(tile_file),
+            options=options)
 
     return _verify_fn
