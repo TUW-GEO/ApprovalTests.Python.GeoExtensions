@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from difflib import unified_diff
 from enum import Enum
 from pathlib import Path
-from typing import Sequence, Optional
+from typing import Sequence, Optional, Mapping
 
 import numpy as np
 from approval_utilities.utils import to_json
@@ -25,9 +25,20 @@ class Difference:
     type: DiffType
 
 
+@dataclass
+class Tolerance:
+    rel: float = 1e-09
+    abs: float = 0.0
+
+    def to_kwargs(self) -> Mapping:
+        return dict(rel_tol=self.rel, abs_tol=self.abs)
+
+
 class DifferOfGeoTiffs:
-    def __init__(self, recursive_scrubber: Optional[RecursiveScrubber] = None):
+    def __init__(self, recursive_scrubber: Optional[RecursiveScrubber] = None,
+                 float_tolerance: Optional[Tolerance] = None):
         self._recursive_scrubber = recursive_scrubber
+        self._float_tolerance = float_tolerance or Tolerance()
 
     def diffs(self, received_path: Path, approved_path: Path) -> Sequence[Difference]:
         diffs = []
@@ -36,17 +47,18 @@ class DifferOfGeoTiffs:
             diff_tags = self._calculate_recursive_diff(approved_path, approved_tags, received_path, received_tags)
             if diff_tags:
                 diffs.append(Difference(diff_tags, DiffType.TAGS))
-            diff_px_stats = self._calculate_pixel_diff(approved_pixels, received_pixels)
-            if diff_px_stats:
-                diffs.append(Difference(diff_px_stats, DiffType.PIXEL_STATS))
 
             if self._recursive_scrubber:
                 approved_pixels.attrs = self._recursive_scrubber(approved_pixels.attrs)
                 received_pixels.attrs = self._recursive_scrubber(received_pixels.attrs)
 
-            diff_px = list(recursive_diff(approved_pixels, received_pixels))
+            diff_px = list(recursive_diff(approved_pixels, received_pixels, **self._float_tolerance.to_kwargs()))
             n_differing_pixels = len(diff_px)
             if n_differing_pixels > 0:
+                diff_px_stats = self._calculate_pixel_diff(approved_pixels, received_pixels)
+                if diff_px_stats:
+                    diffs.append(Difference(diff_px_stats, DiffType.PIXEL_STATS))
+
                 if n_differing_pixels > 10:
                     half = n_differing_pixels // 2
                     diff_px = diff_px[:3] + ["..."] + diff_px[half - 1:half + 2] + ["..."] + diff_px[-3:]
