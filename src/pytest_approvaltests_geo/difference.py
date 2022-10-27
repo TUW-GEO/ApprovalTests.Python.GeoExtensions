@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Sequence
 
 import numpy as np
+import xarray as xr
 from numpy.typing import ArrayLike
 
 
@@ -54,3 +55,22 @@ def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: Arra
 def print_diffs(diffs: Sequence[Difference]) -> None:
     for diff in diffs:
         print(f"{DIFF_TYPE_PREFIXES[diff.type]}{diff.description}")
+
+
+def add_common_meta_data_diffs(a, b, diffs):
+    a_data_vars = set(getattr(a, 'data_vars', {}))
+    b_data_vars = set(getattr(b, 'data_vars', {}))
+    common_data_vars = a_data_vars & b_data_vars
+    a_coords = set(b.coords)
+    b_coords = set(a.coords)
+    common_coords = a_coords & b_coords
+    common_sub_arrays = list(common_data_vars) + list(common_coords)
+    diff_attrs = xr.testing.formatting.diff_attrs_repr(a.attrs, b.attrs, 'identical')
+    if diff_attrs:
+        diffs.append(Difference(diff_attrs, DiffType.TAGS))
+    for name in common_sub_arrays:
+        d = xr.testing.formatting.diff_attrs_repr(a[name].attrs, b[name].attrs, 'identical')
+        if d:
+            diffs.append(Difference(d, DiffType.TAGS))
+
+    return diffs

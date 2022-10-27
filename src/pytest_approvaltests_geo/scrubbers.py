@@ -47,3 +47,13 @@ def make_scrubber_recurse(scrubber: Scrubber) -> RecursiveScrubber:
 
 def identity_recursive_scrubber(tags: Dict) -> Dict:
     return tags
+
+
+def scrub_xarray_data(a, scrubber):
+    a.attrs = scrubber(a.attrs)
+    for name in a.coords:
+        a[name].attrs = scrubber(a[name].attrs)
+    for name in getattr(a, 'data_vars', {}):
+        a[name].attrs = scrubber(a[name].attrs)
+
+    return a
