@@ -4,8 +4,8 @@ import numpy as np
 from approvaltests import Reporter
 from xarray import Dataset
 
-from pytest_approvaltests_geo.differ_of_geo_zarrs import DifferOfGeoZarrs
-from pytest_approvaltests_geo.difference import print_diffs
+from pytest_approvaltests_geo.differs.differ_of_geo_zarrs import DifferOfGeoZarrs
+from pytest_approvaltests_geo.differs.difference import print_diffs
 
 
 class ReportGeoZarrs(Reporter, DifferOfGeoZarrs):

@@ -8,13 +8,13 @@ from approvaltests.namer import NamerBase
 from xarray import DataArray
 
 from pytest_approvaltests_geo._version import __version__
-from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
-from pytest_approvaltests_geo.compare_geo_zarrs import CompareGeoZarrs
+from pytest_approvaltests_geo.comparators.compare_geo_tiffs import CompareGeoTiffs
+from pytest_approvaltests_geo.comparators.compare_geo_zarrs import CompareGeoZarrs
 from pytest_approvaltests_geo.existing_dir_writer import ExistingDirWriter
 from pytest_approvaltests_geo.geo_options import GeoOptions
 from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
-from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
-from pytest_approvaltests_geo.report_geo_zarrs import ReportGeoZarrs
+from pytest_approvaltests_geo.reporters.report_geo_tiffs import ReportGeoTiffs
+from pytest_approvaltests_geo.reporters.report_geo_zarrs import ReportGeoZarrs
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"

@@ -5,7 +5,7 @@ import pytest
 from approvaltests.scrubbers import create_regex_scrubber
 
 from factories import make_raster_at
-from pytest_approvaltests_geo.report_geo_tiffs import ReportGeoTiffs
+from pytest_approvaltests_geo.reporters.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 
 PIXEL_DIFF_REPORT_PATTERN = "[data][band=1"

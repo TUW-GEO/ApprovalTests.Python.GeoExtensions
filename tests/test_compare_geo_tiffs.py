@@ -5,7 +5,7 @@ from approvaltests.scrubbers import create_regex_scrubber
 from xarray import DataArray
 
 from factories import make_raster_at
-from pytest_approvaltests_geo.compare_geo_tiffs import CompareGeoTiffs
+from pytest_approvaltests_geo.comparators.compare_geo_tiffs import CompareGeoTiffs
 from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 

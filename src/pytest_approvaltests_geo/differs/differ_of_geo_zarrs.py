@@ -3,7 +3,7 @@ from typing import Sequence, Optional
 
 import xarray as xr
 
-from pytest_approvaltests_geo.difference import DiffType, Difference, calculate_pixel_diff_stats, \
+from pytest_approvaltests_geo.differs.difference import DiffType, Difference, calculate_pixel_diff_stats, \
     add_common_meta_data_diffs
 from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber, identity_recursive_scrubber, scrub_xarray_data

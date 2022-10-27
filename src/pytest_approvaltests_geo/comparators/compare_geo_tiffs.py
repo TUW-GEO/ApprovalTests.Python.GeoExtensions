@@ -2,7 +2,7 @@ from pathlib import Path
 
 from approvaltests.core import Comparator
 
-from pytest_approvaltests_geo.differ_of_geo_tiffs import DifferOfGeoTiffs
+from pytest_approvaltests_geo.differs.differ_of_geo_tiffs import DifferOfGeoTiffs
 
 
 class CompareGeoTiffs(Comparator, DifferOfGeoTiffs):

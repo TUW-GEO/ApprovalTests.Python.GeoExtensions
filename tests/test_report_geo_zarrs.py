@@ -4,7 +4,7 @@ import pytest
 from approvaltests.scrubbers import create_regex_scrubber
 
 from factories import make_zarr_at
-from pytest_approvaltests_geo.report_geo_zarrs import ReportGeoZarrs
+from pytest_approvaltests_geo.reporters.report_geo_zarrs import ReportGeoZarrs
 from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
 
 
