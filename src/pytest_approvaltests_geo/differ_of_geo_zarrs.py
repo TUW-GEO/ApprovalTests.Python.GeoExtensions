@@ -21,9 +21,15 @@ class DifferOfGeoZarrs:
             approved_ds.attrs = self._recursive_scrubber(approved_ds.attrs)
             received_data_vars = set(received_ds.data_vars)
             approved_data_vars = set(approved_ds.data_vars)
+            received_coords = set(received_ds.coords)
+            approved_coords = set(approved_ds.coords)
             for name in received_data_vars:
                 received_ds[name].attrs = self._recursive_scrubber(received_ds[name].attrs)
             for name in approved_data_vars:
+                approved_ds[name].attrs = self._recursive_scrubber(approved_ds[name].attrs)
+            for name in received_coords:
+                received_ds[name].attrs = self._recursive_scrubber(received_ds[name].attrs)
+            for name in approved_coords:
                 approved_ds[name].attrs = self._recursive_scrubber(approved_ds[name].attrs)
 
             diff_attrs = xr.testing.formatting.diff_attrs_repr(received_ds.attrs, approved_ds.attrs, 'identical')
@@ -31,7 +37,9 @@ class DifferOfGeoZarrs:
                 diffs.append(Difference(diff_attrs, DiffType.TAGS))
 
             common_data_vars = received_data_vars & approved_data_vars
-            for name in common_data_vars:
+            common_coords = received_coords & approved_coords
+            common_sub_arrays = list(common_data_vars) + list(common_coords)
+            for name in common_sub_arrays:
                 d = xr.testing.formatting.diff_attrs_repr(received_ds[name].attrs, approved_ds[name].attrs, 'identical')
                 if d:
                     diffs.append(Difference(d, DiffType.TAGS))

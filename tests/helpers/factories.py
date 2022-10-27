@@ -12,8 +12,8 @@ def make_raster_at(values, file_path: Path, tags=None) -> Path:
     return file_path
 
 
-def make_zarr_at(values, file_path: Path, ds_attrs=None, array_attrs=None) -> Path:
-    array = make_raster(values)
+def make_zarr_at(values, file_path: Path, ds_attrs=None, array_attrs=None, coords=None) -> Path:
+    array = make_raster(values, coords=coords)
     array.attrs = array_attrs or {}
     ds = Dataset(dict(var_name=array))
     ds.attrs = ds_attrs or {}
