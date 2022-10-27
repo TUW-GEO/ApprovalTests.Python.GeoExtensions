@@ -8,4 +8,4 @@ class Tolerance:
     abs: float = 0.0
 
     def to_kwargs(self) -> Mapping:
-        return dict(rel_tol=self.rel, abs_tol=self.abs)
+        return dict(rtol=self.rel, atol=self.abs)

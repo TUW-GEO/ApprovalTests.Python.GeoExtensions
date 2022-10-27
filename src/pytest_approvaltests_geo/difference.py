@@ -29,13 +29,17 @@ class Difference:
 
 @dataclass
 class Stats:
-    min: float
-    max: float
-    mean: float
-    median: float
+    min: float = 0
+    max: float = 0
+    mean: float = 0
+    median: float = 0
 
     def __str__(self):
         return ', '.join([f"{n}={getattr(self, n)}" for n in self.__dict__])
+
+    @property
+    def is_empty(self):
+        return self.min == 0 and self.max == 0
 
 
 def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: ArrayLike) -> Stats:
@@ -45,14 +49,6 @@ def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: Arra
     diff_mean = np.nanmean(diff_pixels).item()
     diff_median = np.nanmedian(diff_pixels).item()
     return Stats(diff_min, diff_max, diff_mean, diff_median)
-
-
-def shorten_pixel_diffs(diffs):
-    n = len(diffs)
-    if n > 10:
-        half = n // 2
-        diffs = diffs[:3] + ["..."] + diffs[half - 1:half + 2] + ["..."] + diffs[-3:]
-    return diffs
 
 
 def print_diffs(diffs: Sequence[Difference]) -> None:

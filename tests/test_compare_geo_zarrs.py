@@ -25,13 +25,19 @@ def test_compare_geo_zarrs_with_differing_attrs(comparator, tmp_path):
     assert not comparator.compare(received.as_posix(), approved.as_posix())
 
 
+def test_compare_geo_zarrs_with_differing_data_var_attrs(comparator, tmp_path):
+    received = make_zarr_at([[42]], tmp_path / "received.tif", array_attrs=dict(some='tag'))
+    approved = make_zarr_at([[42]], tmp_path / "approved.tif", array_attrs=dict(some='other'))
+    assert not comparator.compare(received.as_posix(), approved.as_posix())
+
+
 def test_compare_geo_zarrs_with_differing_pixels(comparator, tmp_path):
     received = make_zarr_at([[42]], tmp_path / "received.tif", dict(some='tag'))
     approved = make_zarr_at([[21]], tmp_path / "approved.tif", dict(some='tag'))
     assert not comparator.compare(received.as_posix(), approved.as_posix())
 
 
-def test_compare_zarrs_tiffs_applies_scrubbers_to_tags(tmp_path):
+def test_compare_zarrs_tiffs_applies_scrubbers_to_meta_data(tmp_path):
     date_scrubber = create_regex_scrubber(r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}", lambda t: f"<date{t}>")
     scrubbing_comparator = CompareGeoZarrs(make_scrubber_recurse(date_scrubber))
     date_old = datetime(2022, 1, 1).strftime("%Y-%m-%dT%H-%M-%S")

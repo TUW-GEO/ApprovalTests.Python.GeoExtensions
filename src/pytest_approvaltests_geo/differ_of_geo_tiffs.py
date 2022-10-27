@@ -3,10 +3,10 @@ from difflib import unified_diff
 from pathlib import Path
 from typing import Sequence, Optional
 
+import xarray as xr
 from approval_utilities.utils import to_json
-from recursive_diff import recursive_diff
 
-from pytest_approvaltests_geo.difference import DiffType, Difference, calculate_pixel_diff_stats, shorten_pixel_diffs
+from pytest_approvaltests_geo.difference import DiffType, Difference, calculate_pixel_diff_stats
 from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber, identity_recursive_scrubber
@@ -29,12 +29,12 @@ class DifferOfGeoTiffs:
             approved_pixels.attrs = self._recursive_scrubber(approved_pixels.attrs)
             received_pixels.attrs = self._recursive_scrubber(received_pixels.attrs)
 
-            diff_px = list(recursive_diff(approved_pixels, received_pixels, **self._float_tolerance.to_kwargs()))
-            if len(diff_px) > 0:
+            try:
+                xr.testing.assert_allclose(received_pixels, approved_pixels, **self._float_tolerance.to_kwargs())
+            except AssertionError as assertion_diff:
                 diff_px_stats = calculate_pixel_diff_stats(approved_pixels, received_pixels)
                 diffs.append(Difference(f"pixel differences statistics:\n{str(diff_px_stats)}", DiffType.PIXEL_STATS))
-                diff_px = shorten_pixel_diffs(diff_px)
-                diffs.append(Difference('\n'.join(diff_px), DiffType.PIXEL))
+                diffs.append(Difference(str(assertion_diff), DiffType.DATASET))
         return diffs
 
     def _calculate_tags_diff(self, approved_path, approved_tags, received_path, received_tags):
