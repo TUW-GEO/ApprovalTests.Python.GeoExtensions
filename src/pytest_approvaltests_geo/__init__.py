@@ -55,7 +55,8 @@ def pytest_collection_modifyitems(config, items):
         skip_reason = "needs an approval directory configured to run."
     skip_missing_dataset = pytest.mark.skip(reason=skip_reason)
     for item in items:
-        if "approval_test_geo_data_root" in item.fixturenames and (approval_root is None or not approval_root.exists()):
+        if "approval_test_geo_data_root" in getattr(item, 'fixturenames', {}) and \
+                (approval_root is None or not approval_root.exists()):
             item.add_marker(skip_missing_dataset)
 
 

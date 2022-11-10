@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from approval_utilities.utilities.multiline_string_utils import remove_indentation_from
 from pytest import ExitCode
 
 from factories import make_raster_at, make_zarr_at
@@ -225,4 +226,22 @@ def test_verify_geo_zarr(testdir, tmp_path):
         """)
 
     result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK
+
+
+def test_doc_tests_still_working(pytester, tmp_path):
+    make_standard_geo_data_setting(pytester, tmp_path)
+
+    module = pytester.mkpydir("some_module")
+    (module / "a_class_with_doc.py").write_text(remove_indentation_from(f'''
+            class AClassWithDoc:
+                """
+                >>> AClassWithDoc(42).the_answer
+                42
+                """
+                def __init__(self, answer):
+                    self.the_answer = answer
+            '''))
+
+    result = pytester.runpytest(Path(pytester.path), '--doctest-modules')
     assert result.ret == ExitCode.OK
