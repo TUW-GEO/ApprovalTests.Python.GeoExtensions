@@ -1,16 +1,22 @@
+from os import PathLike
 from typing import Dict, Tuple, Callable, Optional
 
+import rioxarray  # noqa # pylint: disable=unused-import
 from approvaltests import Options, ScenarioNamer, Namer
 from approvaltests.namer import NamerBase
+from xarray import DataArray
 
 from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
+
+TifWriter = Callable[[PathLike, DataArray], None]
 
 
 class GeoOptions(Options):
     _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
     _NAMER_WRAPPER_SCENARIO_BY_TAGS = "NamerWrapperScenarioByTags"
     _TOLERANCE = "tolerance"
+    _TIF_WRITER = "tif_writer"
 
     @classmethod
     def from_options(cls, options: Options) -> "GeoOptions":
@@ -47,3 +53,10 @@ class GeoOptions(Options):
     @property
     def tolerance(self) -> Optional[Tolerance]:
         return self.fields.get(GeoOptions._TOLERANCE)
+
+    def with_tif_writer(self, writer: TifWriter):
+        return GeoOptions({**self.fields, **{GeoOptions._TIF_WRITER: writer}})
+
+    @property
+    def tif_writer(self) -> TifWriter:
+        return self.fields.get(GeoOptions._TIF_WRITER, lambda f, a: a.rio.to_raster(f))

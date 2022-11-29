@@ -171,14 +171,35 @@ def test_verify_multiple_geo_tiffs(testdir, tmp_path):
     assert result.ret == ExitCode.TESTS_FAILED
 
 
-def test_verify_raster_as_geo_tif(testdir, make_tmp_approval_tif):
-    make_tmp_approval_tif([[1.1]], "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
+def test_verify_raster_as_geo_tif(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+
+    make_raster_at([[1.1]],
+                   approved_dir / "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
     testdir.makepyfile(f"""
             from pytest_approvaltests_geo.geo_options import GeoOptions
             from pytest_approvaltests_geo.factories import make_raster
             def test_verify_raster_as_geo_tif(verify_raster_as_geo_tif):
                 verify_raster_as_geo_tif(make_raster([[1.0]]), options=GeoOptions()\\
                     .with_tolerance(rel_tol=0.05, abs_tol=0.051))
+        """)
+
+    result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK
+
+
+def test_verify_raster_as_geo_tif_with_custom_tif_writer(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+    make_raster_at([[2.0]],
+                   approved_dir / "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif_with_custom_tif_writer.approved.tif")
+
+    testdir.makepyfile(f"""
+            import rioxarray
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.factories import make_raster
+            def test_verify_raster_as_geo_tif(verify_raster_as_geo_tif):
+                verify_raster_as_geo_tif(make_raster([[1.0]]), options=GeoOptions()\\
+                    .with_tif_writer(lambda f, a: make_raster([[2.0]]).rio.to_raster(f)))
         """)
 
     result = testdir.runpytest(Path(testdir.tmpdir), '-v')

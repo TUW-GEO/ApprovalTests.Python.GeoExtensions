@@ -136,7 +136,7 @@ def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
         tile_file = tmp_path_factory.mktemp("raster_as_geo_tif") / "raster.tif"
-        tile.rio.to_raster(tile_file)
+        options.tif_writer(tile_file, tile)
         verify_geo_tif(tile_file, options=options)
 
     return _verify_fn
