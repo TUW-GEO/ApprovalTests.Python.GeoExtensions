@@ -174,8 +174,24 @@ def test_verify_multiple_geo_tiffs(testdir, tmp_path):
 def test_verify_raster_as_geo_tif(testdir, tmp_path):
     _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
 
-    make_raster_at([[1.1]],
+    make_raster_at([[1.0]],
                    approved_dir / "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif.approved.tif")
+    testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.factories import make_raster
+            def test_verify_raster_as_geo_tif(verify_raster_as_geo_tif):
+                verify_raster_as_geo_tif(make_raster([[1.0]]))
+        """)
+
+    result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK
+
+
+def test_verify_raster_as_geo_tif_with_tolerance(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+
+    make_raster_at([[1.1]],
+                   approved_dir / "test_approvaltests_geo_extensions.test_verify_raster_as_geo_tif_with_tolerance.approved.tif")
     testdir.makepyfile(f"""
             from pytest_approvaltests_geo.geo_options import GeoOptions
             from pytest_approvaltests_geo.factories import make_raster
