@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 import pytest
 import rasterio
-from approvaltests import verify_with_namer_and_writer, ExistingFileWriter
+from approvaltests import verify_with_namer_and_writer, ExistingFileWriter, ScenarioNamer
 from approvaltests.namer import NamerBase
 from xarray import DataArray
 
@@ -96,6 +96,14 @@ def geo_data_namer_factory(approved_geo_directory):
 
 
 @pytest.fixture
+def name_geo_scenario(geo_data_namer_factory):
+    def scenario_namer(*scenario_names):
+        return ScenarioNamer(geo_data_namer_factory(), *scenario_names)
+
+    return scenario_namer
+
+
+@pytest.fixture
 def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
@@ -148,7 +156,7 @@ def verify_geo_zarr(geo_data_namer_factory):
     def _verify_fn(zarr_archive: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
-        geo_data_namer = geo_data_namer_factory()
+        geo_data_namer = options.namer or geo_data_namer_factory()
         geo_data_namer.set_extension(Path(zarr_archive).suffix)
         options = options or GeoOptions()
         zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.tolerance)
