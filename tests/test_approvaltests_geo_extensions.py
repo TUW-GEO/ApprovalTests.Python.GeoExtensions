@@ -284,6 +284,23 @@ def test_verify_parametrized_geo_zarr(testdir, tmp_path):
     assert result.ret == ExitCode.OK
 
 
+def test_verify_geo_zarr_without_options(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+
+    zarr_file = make_zarr_at([[1.0]], tmp_path / "a_zarr_to_test.zarr")
+    make_zarr_at([[1.0]], approved_dir /
+                 "test_approvaltests_geo_extensions.test_verify_geo_zarr_without_options.approved.zarr")
+    testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from approvaltests import Options
+            def test_verify_geo_zarr(verify_geo_zarr, name_geo_scenario):
+                verify_geo_zarr("{zarr_file.as_posix()}")
+        """)
+
+    result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK
+
+
 def test_doc_tests_still_working(pytester, tmp_path):
     make_standard_geo_data_setting(pytester, tmp_path)
 

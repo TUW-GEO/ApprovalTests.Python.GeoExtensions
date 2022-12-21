@@ -156,9 +156,9 @@ def verify_geo_zarr(geo_data_namer_factory):
     def _verify_fn(zarr_archive: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
+        options = options or GeoOptions()
         geo_data_namer = options.namer or geo_data_namer_factory()
         geo_data_namer.set_extension(Path(zarr_archive).suffix)
-        options = options or GeoOptions()
         zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.tolerance)
         zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.tolerance)
         options = options.with_comparator(zarr_comparator)
