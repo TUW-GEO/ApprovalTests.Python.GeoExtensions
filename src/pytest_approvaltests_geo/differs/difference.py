@@ -34,13 +34,14 @@ class Stats:
     max: float = 0
     mean: float = 0
     median: float = 0
+    nans: int = 0
 
     def __str__(self):
         return ', '.join([f"{n}={getattr(self, n)}" for n in self.__dict__])
 
     @property
     def is_empty(self):
-        return self.min == 0 and self.max == 0
+        return self.min == 0 and self.max == 0 and self.nans == 0
 
 
 def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: ArrayLike) -> Stats:
@@ -49,7 +50,8 @@ def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: Arra
     diff_max = np.nanmax(diff_pixels).item()
     diff_mean = np.nanmean(diff_pixels).item()
     diff_median = np.nanmedian(diff_pixels).item()
-    return Stats(diff_min, diff_max, diff_mean, diff_median)
+    diff_nans = (np.asarray(np.sum(np.isnan(received_pixels))) - np.asarray(np.sum(np.isnan(approved_pixels)))).item()
+    return Stats(diff_min, diff_max, diff_mean, diff_median, diff_nans)
 
 
 def print_diffs(diffs: Sequence[Difference]) -> None:

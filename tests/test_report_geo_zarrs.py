@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import numpy as np
 import pytest
 from approvaltests.scrubbers import create_regex_scrubber
 
@@ -20,11 +21,11 @@ def test_identical_geo_tiffs_report_nothing(reporter, tmp_path, capsys):
 
 
 def test_report_pixel_differences_and_statistics(reporter, tmp_path, capsys):
-    received = make_zarr_at([[0, 0], [0, 0]], tmp_path / "received.tif", dict(some='tag'))
-    approved = make_zarr_at([[2, 4], [-2, 1]], tmp_path / "approved.tif", dict(some='tag'))
+    received = make_zarr_at([[0, 0], [0, np.nan]], tmp_path / "received.tif", dict(some='tag'))
+    approved = make_zarr_at([[2, 6], [-1, 2]], tmp_path / "approved.tif", dict(some='tag'))
     assert reporter.report(received.as_posix(), approved.as_posix())
     std_out = capsys.readouterr().out
-    assert "min=1, max=4, mean=2.25, median=2" in std_out
+    assert "min=1.0, max=6.0, mean=3.0, median=2.0, nans=-1" in std_out
 
 
 def test_report_meta_data_differences(reporter, tmp_path, capsys):
