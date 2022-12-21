@@ -60,7 +60,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_missing_dataset)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def approval_test_geo_data_root(request):
     custom_root = request.config.option.approval_test_geo_data_root
     if custom_root is not None:
@@ -72,21 +72,21 @@ def approval_test_geo_data_root(request):
     return None
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def approval_geo_input_directory(approval_test_geo_data_root, request):
     if approval_test_geo_data_root is not None:
         return approval_test_geo_data_root / request.config.getini('approvaltests_geo_input')
     return None
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def approved_geo_directory(approval_test_geo_data_root, request):
     if approval_test_geo_data_root is not None:
         return approval_test_geo_data_root / request.config.getini('approvaltests_geo_approved')
     return None
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def geo_data_namer_factory(approved_geo_directory):
     if approved_geo_directory is not None:
         return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
@@ -95,7 +95,7 @@ def geo_data_namer_factory(approved_geo_directory):
         return get_default_namer
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def name_geo_scenario(geo_data_namer_factory):
     def scenario_namer(*scenario_names):
         return ScenarioNamer(geo_data_namer_factory(), *scenario_names)
@@ -103,7 +103,7 @@ def name_geo_scenario(geo_data_namer_factory):
     return scenario_namer
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
@@ -116,7 +116,7 @@ def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
     return _verify_fn
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def verify_geo_tif_with_namer():
     def _verify_fn(tile_file: PathConvertible,
                    namer: NamerBase,
@@ -138,7 +138,7 @@ def verify_geo_tif_with_namer():
     return _verify_fn
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
     def _verify_fn(tile: DataArray,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
@@ -151,7 +151,7 @@ def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
     return _verify_fn
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def verify_geo_zarr(geo_data_namer_factory):
     def _verify_fn(zarr_archive: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
