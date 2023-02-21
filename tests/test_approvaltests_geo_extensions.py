@@ -5,7 +5,7 @@ import pytest
 from approval_utilities.utilities.multiline_string_utils import remove_indentation_from
 from pytest import ExitCode
 
-from factories import make_raster_at, make_zarr_at
+from factories import make_raster_at, make_zarr_at, make_nc_at
 
 
 @pytest.fixture
@@ -295,6 +295,27 @@ def test_verify_geo_zarr_without_options(testdir, tmp_path):
             from approvaltests import Options
             def test_verify_geo_zarr(verify_geo_zarr, name_geo_scenario):
                 verify_geo_zarr("{zarr_file.as_posix()}")
+        """)
+
+    result = testdir.runpytest(Path(testdir.tmpdir), '-v')
+    assert result.ret == ExitCode.OK
+
+
+def test_verify_geo_nc(testdir, tmp_path):
+    _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
+
+    nc_file = make_nc_at([[1.0]], tmp_path / "a_nc_to_test.nc",
+                         dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+    make_nc_at([[1.1]], approved_dir / "test_approvaltests_geo_extensions.test_verify_geo_nc.approved.nc",
+               dict(some=datetime(2022, 1, 2).strftime("%Y-%m-%d %H:%M:%S")))
+    testdir.makepyfile(f"""
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
+            from approvaltests.scrubbers import scrub_all_dates
+            def test_verify_geo_nc(verify_geo_nc):
+                verify_geo_nc("{nc_file.as_posix()}", options=GeoOptions()\\
+                    .with_tags_scrubber(make_scrubber_recurse(scrub_all_dates))
+                    .with_tolerance(rel_tol=0.05, abs_tol=0.051))
         """)
 
     result = testdir.runpytest(Path(testdir.tmpdir), '-v')

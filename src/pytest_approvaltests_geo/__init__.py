@@ -8,11 +8,13 @@ from approvaltests.namer import NamerBase
 from xarray import DataArray
 
 from pytest_approvaltests_geo._version import __version__
+from pytest_approvaltests_geo.comparators.compare_geo_ncs import CompareGeoNcs
 from pytest_approvaltests_geo.comparators.compare_geo_tiffs import CompareGeoTiffs
 from pytest_approvaltests_geo.comparators.compare_geo_zarrs import CompareGeoZarrs
 from pytest_approvaltests_geo.existing_dir_writer import ExistingDirWriter
 from pytest_approvaltests_geo.geo_options import GeoOptions
 from pytest_approvaltests_geo.namer.stack_frame_namer_with_external_data_dir import StackFrameNamerWithExternalDataDir
+from pytest_approvaltests_geo.reporters.report_geo_ncs import ReportGeoNcs
 from pytest_approvaltests_geo.reporters.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.reporters.report_geo_zarrs import ReportGeoZarrs
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
@@ -166,6 +168,26 @@ def verify_geo_zarr(geo_data_namer_factory):
         verify_with_namer_and_writer(
             namer=geo_data_namer,
             writer=ExistingDirWriter(zarr_archive),
+            options=options)
+
+    return _verify_fn
+
+
+@pytest.fixture(scope='module')
+def verify_geo_nc(geo_data_namer_factory):
+    def _verify_fn(nc_file: PathConvertible,
+                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                   options: Optional[GeoOptions] = None):
+        options = options or GeoOptions()
+        geo_data_namer = options.namer or geo_data_namer_factory()
+        geo_data_namer.set_extension(Path(nc_file).suffix)
+        nc_comparator = CompareGeoNcs(options.scrub_tags, options.tolerance)
+        nc_reporter = ReportGeoNcs(options.scrub_tags, options.tolerance)
+        options = options.with_comparator(nc_comparator)
+        options = options.with_reporter(nc_reporter)
+        verify_with_namer_and_writer(
+            namer=geo_data_namer,
+            writer=ExistingFileWriter(nc_file, options),
             options=options)
 
     return _verify_fn
