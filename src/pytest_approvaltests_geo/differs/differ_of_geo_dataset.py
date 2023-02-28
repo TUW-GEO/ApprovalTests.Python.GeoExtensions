@@ -6,22 +6,25 @@ from xarray import Dataset
 
 from pytest_approvaltests_geo.differs.difference import Difference, add_common_meta_data_diffs, \
     calculate_pixel_diff_stats, DiffType
-from pytest_approvaltests_geo.scrubbers import scrub_xarray_data
+from pytest_approvaltests_geo.scrubbers import scrub_xarray_metadata, scrub_xarray_coordinates
 
 DatasetOpener = Callable[[Path], Dataset]
 
 
 class DifferOfGeoDataset:
-    def __init__(self, opener: DatasetOpener, recursive_scrubber, float_tolerance):
+    def __init__(self, opener: DatasetOpener, tags_scrubber, coords_scrubber, float_tolerance):
         self._opener = opener
-        self._recursive_scrubber = recursive_scrubber
+        self._tags_scrubber = tags_scrubber
+        self._coords_scrubber = coords_scrubber
         self._float_tolerance = float_tolerance
 
     def diffs(self, received_path: Path, approved_path: Path) -> Sequence[Difference]:
         diffs = []
         with self._opener(received_path) as received_ds, self._opener(approved_path) as approved_ds:
-            received_ds = scrub_xarray_data(received_ds, self._recursive_scrubber)
-            approved_ds = scrub_xarray_data(approved_ds, self._recursive_scrubber)
+            received_ds = scrub_xarray_metadata(received_ds, self._tags_scrubber)
+            approved_ds = scrub_xarray_metadata(approved_ds, self._tags_scrubber)
+            received_ds = scrub_xarray_coordinates(received_ds, self._coords_scrubber)
+            approved_ds = scrub_xarray_coordinates(approved_ds, self._coords_scrubber)
             diffs = add_common_meta_data_diffs(received_ds, approved_ds, diffs)
 
             try:

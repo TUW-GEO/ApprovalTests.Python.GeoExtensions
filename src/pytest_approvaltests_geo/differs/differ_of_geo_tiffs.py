@@ -10,7 +10,7 @@ from pytest_approvaltests_geo.differs.difference import DiffType, Difference, ca
     add_common_meta_data_diffs
 from pytest_approvaltests_geo.float_utils import Tolerance
 from pytest_approvaltests_geo.geo_io import read_array_and_tags
-from pytest_approvaltests_geo.scrubbers import RecursiveScrubber, identity_recursive_scrubber, scrub_xarray_data
+from pytest_approvaltests_geo.scrubbers import RecursiveScrubber, identity_recursive_scrubber, scrub_xarray_metadata
 
 
 class DifferOfGeoTiffs:
@@ -27,8 +27,8 @@ class DifferOfGeoTiffs:
             if diff_tags:
                 diffs.append(Difference(diff_tags, DiffType.TAGS))
 
-            received_pixels = scrub_xarray_data(received_pixels, self._recursive_scrubber)
-            approved_pixels = scrub_xarray_data(approved_pixels, self._recursive_scrubber)
+            received_pixels = scrub_xarray_metadata(received_pixels, self._recursive_scrubber)
+            approved_pixels = scrub_xarray_metadata(approved_pixels, self._recursive_scrubber)
             diffs = add_common_meta_data_diffs(received_pixels, approved_pixels, diffs)
 
             try:

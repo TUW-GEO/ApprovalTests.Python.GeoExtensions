@@ -6,7 +6,7 @@ from approvaltests.scrubbers import create_regex_scrubber
 
 from factories import make_zarr_at
 from pytest_approvaltests_geo.reporters.report_geo_zarrs import ReportGeoZarrs
-from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
+from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse, make_scrubber_sequential
 
 
 @pytest.fixture
@@ -40,14 +40,15 @@ def test_report_scrubbed_data(tmp_path, capsys):
     date_scrubber = create_regex_scrubber(
         r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}", lambda t: f"<date{t}>"
     )
-    scrubbing_reporter = ReportGeoZarrs(make_scrubber_recurse(date_scrubber))
+    scrubbing_reporter = ReportGeoZarrs(make_scrubber_recurse(date_scrubber), make_scrubber_sequential(date_scrubber))
     date_old = datetime(2022, 1, 1).strftime("%Y-%m-%dT%H-%M-%S")
     date_new = datetime(2022, 2, 1).strftime("%Y-%m-%dT%H-%M-%S")
     received = make_zarr_at([[0, 0], [0, 0]], tmp_path / "received.zarr",
-                            {"some": date_old}, {date_new: 42})
+                            {"some": date_old}, {date_new: 42}, extra_coords={'meta': ('band', [date_old])})
     approved = make_zarr_at([[2, 4], [-2, 1]], tmp_path / "approved.zarr",
-                            {"other": date_old}, {date_new: 21})
+                            {"other": date_old}, {date_new: 21}, extra_coords={'meta': ('band', [date_new])})
     assert scrubbing_reporter.report(received.as_posix(), approved.as_posix())
     output = capsys.readouterr().out
     assert 'other: <date0>' in output and '<date0>: 42' in output
     assert 'some: <date0>' in output and '<date0>: 21' in output
+    assert "(band) <U19 '2022-01-01T00-00-00'" not in output

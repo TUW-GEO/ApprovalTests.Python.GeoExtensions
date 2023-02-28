@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Dict, Tuple, Callable, Optional
+from typing import Dict, Tuple, Callable, Optional, Sequence
 
 import rioxarray  # noqa # pylint: disable=unused-import
 from approvaltests import Options, ScenarioNamer, Namer
@@ -14,6 +14,7 @@ TifWriter = Callable[[PathLike, DataArray], None]
 
 class GeoOptions(Options):
     _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
+    _COORDS_SCRUBBER_FUNC = "coords_scrubber_func"
     _NAMER_WRAPPER_SCENARIO_BY_TAGS = "NamerWrapperScenarioByTags"
     _TOLERANCE = "tolerance"
     _TIF_WRITER = "tif_writer"
@@ -30,8 +31,19 @@ class GeoOptions(Options):
     def with_tags_scrubber(self, scrubber_func: RecursiveScrubber) -> "GeoOptions":
         return GeoOptions({**self.fields, **{GeoOptions._TAGS_SCRUBBER_FUNC: scrubber_func}})
 
-    def has_tags_scrubber(self):
+    def has_tags_scrubber(self) -> bool:
         return GeoOptions._TAGS_SCRUBBER_FUNC in self.fields
+
+    def scrub_coords(self, data: Sequence) -> Sequence:
+        if self.has_coords_scrubber():
+            return self.fields[GeoOptions._COORDS_SCRUBBER_FUNC](data)
+        return data
+
+    def with_coords_scrubber(self, scrubber_func: RecursiveScrubber) -> "GeoOptions":
+        return GeoOptions({**self.fields, **{GeoOptions._COORDS_SCRUBBER_FUNC: scrubber_func}})
+
+    def has_coords_scrubber(self) -> bool:
+        return GeoOptions._COORDS_SCRUBBER_FUNC in self.fields
 
     def with_scenario_by_tags(self, tags_to_names: Callable[[Dict], Tuple[str, ...]]):
         return GeoOptions({**self.fields, **{GeoOptions._NAMER_WRAPPER_SCENARIO_BY_TAGS: tags_to_names}})

@@ -248,17 +248,20 @@ def test_verify_multiple_rasters_as_geo_tif(testdir, make_tmp_approval_tif):
 def test_verify_geo_zarr(testdir, tmp_path):
     _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
 
+    old_date = datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")
     zarr_file = make_zarr_at([[1.0]], tmp_path / "a_zarr_to_test.zarr",
-                             dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+                             dict(some=old_date), extra_coords={'meta': ('band', [old_date])})
+    new_date = datetime(2022, 1, 2).strftime("%Y-%m-%d %H:%M:%S")
     make_zarr_at([[1.1]], approved_dir / "test_approvaltests_geo_extensions.test_verify_geo_zarr.approved.zarr",
-                 dict(some=datetime(2022, 1, 2).strftime("%Y-%m-%d %H:%M:%S")))
+                 dict(some=new_date), extra_coords={'meta': ('band', [new_date])})
     testdir.makepyfile(f"""
             from pytest_approvaltests_geo.geo_options import GeoOptions
-            from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
+            from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse, make_scrubber_sequential
             from approvaltests.scrubbers import scrub_all_dates
             def test_verify_geo_zarr(verify_geo_zarr):
                 verify_geo_zarr("{zarr_file.as_posix()}", options=GeoOptions()\\
                     .with_tags_scrubber(make_scrubber_recurse(scrub_all_dates))
+                    .with_coords_scrubber(make_scrubber_sequential(scrub_all_dates))
                     .with_tolerance(rel_tol=0.05, abs_tol=0.051))
         """)
 

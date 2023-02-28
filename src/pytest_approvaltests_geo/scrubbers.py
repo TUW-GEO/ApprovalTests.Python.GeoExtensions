@@ -1,9 +1,11 @@
-from typing import Callable, Dict, Union, List, Tuple, get_args, Any
+from typing import Callable, Dict, Union, List, Tuple, get_args, Any, Sequence
 
+import numpy as np
 from approvaltests.scrubbers.scrubbers import Scrubber
 
 JsonLikeCollection = Union[Dict, List, Tuple]
 RecursiveScrubber = Callable[[JsonLikeCollection], JsonLikeCollection]
+SequenceScrubber = Callable[[Sequence], Sequence]
 
 
 def scrub_recursive(tags: JsonLikeCollection, scrubber: Scrubber) -> JsonLikeCollection:
@@ -41,19 +43,39 @@ def scrub_tuple_recursive(tags: Tuple, scrubber: Scrubber) -> Tuple:
     return tuple(scrub_element(t, scrubber) for t in tags)
 
 
+def scrub_sequential(elems: Sequence, scrubber: Scrubber) -> Sequence:
+    return [scrubber(e) for e in elems]
+
+
 def make_scrubber_recurse(scrubber: Scrubber) -> RecursiveScrubber:
     return lambda elems: scrub_recursive(elems, scrubber)
+
+
+def make_scrubber_sequential(scrubber: Scrubber) -> SequenceScrubber:
+    return lambda elems: scrub_sequential(elems, scrubber)
 
 
 def identity_recursive_scrubber(tags: Dict) -> Dict:
     return tags
 
 
-def scrub_xarray_data(a, scrubber):
-    a.attrs = scrubber(a.attrs)
-    for name in a.coords:
-        a[name].attrs = scrubber(a[name].attrs)
-    for name in getattr(a, 'data_vars', {}):
-        a[name].attrs = scrubber(a[name].attrs)
+def identity_sequence_scrubber(v: Sequence) -> Sequence:
+    return v
 
+
+def scrub_xarray_metadata(a, tags_scrubber):
+    a.attrs = tags_scrubber(a.attrs)
+    for name in a.coords:
+        a[name].attrs = tags_scrubber(a[name].attrs)
+    for name in getattr(a, 'data_vars', {}):
+        a[name].attrs = tags_scrubber(a[name].attrs)
+
+    return a
+
+
+def scrub_xarray_coordinates(a, coords_scrubber):
+    for coord in a.coords:
+        cv = a[coord]
+        if cv.dtype.type is np.str_:
+            cv.values = coords_scrubber(cv.values)
     return a

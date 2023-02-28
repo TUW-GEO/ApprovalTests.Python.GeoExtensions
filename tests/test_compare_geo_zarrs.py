@@ -7,7 +7,7 @@ from xarray import DataArray
 from factories import make_zarr_at
 from pytest_approvaltests_geo.comparators.compare_geo_zarrs import CompareGeoZarrs
 from pytest_approvaltests_geo.float_utils import Tolerance
-from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
+from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse, make_scrubber_sequential
 
 
 @pytest.fixture
@@ -59,6 +59,15 @@ def test_compare_geo_zarrs_applies_scrubbers_to_all_meta_data(tmp_path):
     approved = make_zarr_at([[42]], tmp_path / "approved.zarr", {date_new: 42}, dict(some=date_new), coords=dict(
         band=[1], x=[0], y=[0], spatial_ref=DataArray(0, attrs=dict(some=date_new))
     ))
+    assert scrubbing_comparator.compare(received.as_posix(), approved.as_posix())
+
+def test_compare_geo_zarrs_applies_scrubbers_to_all_coords(tmp_path):
+    date_scrubber = create_regex_scrubber(r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}", lambda t: f"<date{t}>")
+    scrubbing_comparator = CompareGeoZarrs(coords_scrubber=make_scrubber_sequential(date_scrubber))
+    date_old = datetime(2022, 1, 1).strftime("%Y-%m-%dT%H-%M-%S")
+    date_new = datetime(2022, 1, 2).strftime("%Y-%m-%dT%H-%M-%S")
+    received = make_zarr_at([[42]], tmp_path / "received.zarr", extra_coords={'meta': ('band', [date_old])})
+    approved = make_zarr_at([[42]], tmp_path / "approved.zarr", extra_coords={'meta': ('band', [date_new])})
     assert scrubbing_comparator.compare(received.as_posix(), approved.as_posix())
 
 

@@ -161,8 +161,8 @@ def verify_geo_zarr(geo_data_namer_factory):
         options = options or GeoOptions()
         geo_data_namer = options.namer or geo_data_namer_factory()
         geo_data_namer.set_extension(Path(zarr_archive).suffix)
-        zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.tolerance)
-        zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.tolerance)
+        zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
+        zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
         options = options.with_comparator(zarr_comparator)
         options = options.with_reporter(zarr_reporter)
         verify_with_namer_and_writer(
@@ -181,8 +181,8 @@ def verify_geo_nc(geo_data_namer_factory):
         options = options or GeoOptions()
         geo_data_namer = options.namer or geo_data_namer_factory()
         geo_data_namer.set_extension(Path(nc_file).suffix)
-        nc_comparator = CompareGeoNcs(options.scrub_tags, options.tolerance)
-        nc_reporter = ReportGeoNcs(options.scrub_tags, options.tolerance)
+        nc_comparator = CompareGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
+        nc_reporter = ReportGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
         options = options.with_comparator(nc_comparator)
         options = options.with_reporter(nc_reporter)
         verify_with_namer_and_writer(
