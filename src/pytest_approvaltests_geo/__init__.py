@@ -3,10 +3,9 @@ from typing import Optional, Union
 
 import pytest
 import rasterio
+from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
 from approvaltests import verify_with_namer_and_writer, ExistingFileWriter, ScenarioNamer
 from approvaltests.namer import NamerBase
-from xarray import DataArray
-
 from pytest_approvaltests_geo._version import __version__
 from pytest_approvaltests_geo.comparators.compare_geo_ncs import CompareGeoNcs
 from pytest_approvaltests_geo.comparators.compare_geo_tiffs import CompareGeoTiffs
@@ -18,6 +17,7 @@ from pytest_approvaltests_geo.reporters.report_geo_ncs import ReportGeoNcs
 from pytest_approvaltests_geo.reporters.report_geo_tiffs import ReportGeoTiffs
 from pytest_approvaltests_geo.reporters.report_geo_zarrs import ReportGeoZarrs
 from pytest_approvaltests_geo.scrubbers import RecursiveScrubber
+from xarray import DataArray
 
 APPROVAL_TEST_GEO_DATA_ROOT_OPTION = "--approval-test-geo-data-root"
 
@@ -191,3 +191,22 @@ def verify_geo_nc(geo_data_namer_factory):
             options=options)
 
     return _verify_fn
+
+
+@pytest.fixture
+def verify_data_frame_using(verify_geo_tif, geo_data_namer_factory):
+    def _make_verifier(verify_fn, *columns):
+        def _verify_data_frame(data_frame, *, options: Optional[GeoOptions] = None):
+            options = options or GeoOptions()
+
+            def _verify(pack):
+                _, row = pack
+                verify_fn(row['filepath'], options=GeoOptions.from_options(options.with_namer(
+                    ScenarioNamer(geo_data_namer_factory(), *tuple(row[c] for c in columns))
+                )))
+
+            gather_all_exceptions_and_throw(data_frame.iterrows(), _verify)
+
+        return _verify_data_frame
+
+    return _make_verifier

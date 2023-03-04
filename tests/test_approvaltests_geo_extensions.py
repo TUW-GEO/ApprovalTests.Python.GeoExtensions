@@ -171,6 +171,55 @@ def test_verify_multiple_geo_tiffs(testdir, tmp_path):
     assert result.ret == ExitCode.TESTS_FAILED
 
 
+def test_verify_data_frame_using_geo_tif_verification(testdir, tmp_path):
+    make_standard_geo_data_setting(testdir, tmp_path)
+
+    tif_a = make_raster_at([[42]], tmp_path / "a.tif")
+    tif_b = make_raster_at([[42]], tmp_path / "b.tif")
+
+    testdir.makepyfile(f"""
+            from pandas import DataFrame
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from approval_utilities.utilities.exceptions.exception_collector import gather_all_exceptions_and_throw
+            def test_verify_geo_tif_data_frame(verify_data_frame_using, verify_geo_tif):
+                df = DataFrame(dict(filepath=["{tif_a.as_posix()}", "{tif_b.as_posix()}"], 
+                               param_a=[0, 0], 
+                               param_b=['A', 'B']))
+                verify_data_frame_using(verify_geo_tif, 'param_a', 'param_b')(df)
+        """)
+
+    result = testdir.runpytest('-v')
+
+    result.stdout.fnmatch_lines([
+        "*test_verify_data_frame_using_geo_tif_verification.0.A.received.tif*",
+        "*test_verify_data_frame_using_geo_tif_verification.0.B.received.tif*",
+    ])
+
+
+def test_verify_data_frame_passes_along_geo_options(testdir, tmp_path):
+    make_standard_geo_data_setting(testdir, tmp_path)
+
+    tif_file = make_raster_at([[42]], tmp_path / "a_tif_to_test.tif",
+                              dict(some=datetime(2022, 1, 1).strftime("%Y-%m-%d %H:%M:%S")))
+
+    testdir.makepyfile(f"""
+            from pandas import DataFrame
+            from pytest_approvaltests_geo.geo_options import GeoOptions
+            from pytest_approvaltests_geo.scrubbers import make_scrubber_recurse
+            from approvaltests.scrubbers import scrub_all_dates
+            def test_verify_geo_tif(verify_data_frame_using, verify_geo_tif):
+                df = DataFrame(dict(filepath=["{tif_file.as_posix()}"],  param_a=[0]))
+                verify_data_frame_using(verify_geo_tif, 'param_a')(df, 
+                    options=GeoOptions().with_tags_scrubber(make_scrubber_recurse(scrub_all_dates)))
+        """)
+
+    result = testdir.runpytest('-v')
+
+    result.stdout.fnmatch_lines([
+        '+    "some": "<date0>"',
+    ])
+
+
 def test_verify_raster_as_geo_tif(testdir, tmp_path):
     _, _, approved_dir = make_standard_geo_data_setting(testdir, tmp_path)
 
