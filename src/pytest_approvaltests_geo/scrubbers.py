@@ -1,7 +1,8 @@
 from typing import Callable, Dict, Union, List, Tuple, get_args, Any, Sequence
 
 import numpy as np
-from approvaltests.scrubbers.scrubbers import Scrubber
+from approvaltests.scrubbers.scrubbers import Scrubber, create_regex_scrubber, combine_scrubbers, scrub_all_dates, \
+    scrub_all_guids
 
 JsonLikeCollection = Union[Dict, List, Tuple]
 RecursiveScrubber = Callable[[JsonLikeCollection], JsonLikeCollection]
@@ -79,3 +80,34 @@ def scrub_xarray_coordinates(a, coords_scrubber):
         if cv.dtype.type is np.str_:
             cv.values = coords_scrubber(cv.values)
     return a
+
+
+def scrub_all_yeoda_dates(data: str) -> str:
+    return create_regex_scrubber(
+        r"\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}",
+        lambda t: f"<yeoda_date{t}>",
+    )(data)
+
+
+def scrub_all_short_commits(data: str) -> str:
+    return create_regex_scrubber(
+        r"[0-9a-fA-F]{7}",
+        lambda t: f"<short_commit_{t}>",
+    )(data)
+
+
+def scrub_all_tags(data: str) -> str:
+    return create_regex_scrubber(
+        r"v\d\.\d\.\d",
+        lambda t: f"<tag_{t}>",
+    )(data)
+
+
+def scrub_yeoda_datacube_metadata(data: str) -> str:
+    return combine_scrubbers(
+        scrub_all_dates,
+        scrub_all_yeoda_dates,
+        scrub_all_guids,
+        scrub_all_short_commits,
+        scrub_all_tags,
+    )(data)
