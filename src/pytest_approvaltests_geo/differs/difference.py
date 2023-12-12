@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Sequence
 
 import numpy as np
-import xarray as xr
 from numpy.typing import ArrayLike
+from xarray.core.formatting import diff_attrs_repr
 
 
 class DiffType(Enum):
@@ -67,11 +67,11 @@ def add_common_meta_data_diffs(a, b, diffs):
     b_coords = set(a.coords)
     common_coords = a_coords & b_coords
     common_sub_arrays = list(common_data_vars) + list(common_coords)
-    diff_attrs = xr.testing.formatting.diff_attrs_repr(a.attrs, b.attrs, 'identical')
+    diff_attrs = diff_attrs_repr(a.attrs, b.attrs, 'identical')
     if diff_attrs:
         diffs.append(Difference(diff_attrs, DiffType.TAGS))
     for name in common_sub_arrays:
-        d = xr.testing.formatting.diff_attrs_repr(a[name].attrs, b[name].attrs, 'identical')
+        d = diff_attrs_repr(a[name].attrs, b[name].attrs, 'identical')
         if d:
             diffs.append(Difference(d, DiffType.TAGS))
 
