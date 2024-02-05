@@ -78,7 +78,7 @@ def scrub_xarray_coordinates(a, coords_scrubber):
     for coord in a.coords:
         cv = a[coord]
         if cv.dtype.type is np.str_:
-            cv.values = coords_scrubber(cv.values)
+            a = a.assign_coords({coord: (cv.dims[0], coords_scrubber(cv.values))})
     return a
 
 
