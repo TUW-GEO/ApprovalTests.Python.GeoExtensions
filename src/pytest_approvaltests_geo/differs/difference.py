@@ -46,6 +46,8 @@ class Stats:
 
 def calculate_pixel_diff_stats(approved_pixels: ArrayLike, received_pixels: ArrayLike) -> Stats:
     diff_pixels = np.abs(received_pixels - approved_pixels)
+    if diff_pixels.size == 0:
+        return Stats()
     diff_min = np.nanmin(diff_pixels).item()
     diff_max = np.nanmax(diff_pixels).item()
     diff_mean = np.nanmean(diff_pixels).item()
