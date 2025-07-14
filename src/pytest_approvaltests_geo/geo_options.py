@@ -1,4 +1,6 @@
+import tempfile
 from os import PathLike
+from pathlib import Path
 from typing import Dict, Tuple, Callable, Optional, Sequence
 
 import rioxarray  # noqa # pylint: disable=unused-import
@@ -16,6 +18,8 @@ class GeoOptions(Options):
     _TAGS_SCRUBBER_FUNC = "tags_scrubber_func"
     _COORDS_SCRUBBER_FUNC = "coords_scrubber_func"
     _NAMER_WRAPPER_SCENARIO_BY_TAGS = "NamerWrapperScenarioByTags"
+    _APPROVED_DIRECTORY = "approved_directory"
+    _TMP_DIRECTORY = "tmp_directory"
     _TOLERANCE = "tolerance"
     _TIF_WRITER = "tif_writer"
 
@@ -72,3 +76,17 @@ class GeoOptions(Options):
     @property
     def tif_writer(self) -> TifWriter:
         return self.fields.get(GeoOptions._TIF_WRITER, lambda f, a: a.rio.to_raster(f))
+
+    def with_approved_directory(self, directory: Path):
+        return GeoOptions({**self.fields, **{GeoOptions._APPROVED_DIRECTORY: directory}})
+
+    @property
+    def approved_directory(self) -> Optional[Path]:
+        return self.fields.get(GeoOptions._APPROVED_DIRECTORY)
+
+    def with_tmp_directory(self, directory: Path):
+        return GeoOptions({**self.fields, **{GeoOptions._TMP_DIRECTORY: directory}})
+
+    @property
+    def tmp_directory(self) -> Path:
+        return self.fields.get(GeoOptions._TMP_DIRECTORY, Path(tempfile.mkdtemp()))

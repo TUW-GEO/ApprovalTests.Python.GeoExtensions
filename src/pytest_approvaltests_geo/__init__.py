@@ -89,8 +89,16 @@ def approved_geo_directory(approval_test_geo_data_root, request):
     return None
 
 
-@pytest.fixture(scope='module')
-def geo_data_namer_factory(approved_geo_directory):
+def geo_data_namer_factory(approved_geo_directory: Optional[Path] = None):
+    if approved_geo_directory is not None:
+        return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
+    else:
+        from approvaltests.namer.default_name import get_default_namer
+        return get_default_namer
+
+
+@pytest.fixture(scope='module', name='geo_data_namer_factory')
+def geo_data_namer_factory_fixture(approved_geo_directory):
     if approved_geo_directory is not None:
         return lambda: StackFrameNamerWithExternalDataDir(approved_geo_directory.as_posix())
     else:
@@ -99,115 +107,156 @@ def geo_data_namer_factory(approved_geo_directory):
 
 
 @pytest.fixture(scope='module')
-def name_geo_scenario(geo_data_namer_factory):
+def name_geo_scenario(approved_geo_directory):
     def scenario_namer(*scenario_names):
-        return ScenarioNamer(geo_data_namer_factory(), *scenario_names)
+        return ScenarioNamer(geo_data_namer_factory(approved_geo_directory)(), *scenario_names)
 
     return scenario_namer
 
 
-@pytest.fixture(scope='module')
-def verify_geo_tif(verify_geo_tif_with_namer, geo_data_namer_factory):
+def verify_geo_tif(tile_file: PathConvertible,
+                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                   options: Optional[GeoOptions] = None):
+    geo_data_namer = options.namer if options else None
+    geo_approved_dir = options.approved_directory if options else None
+    geo_data_namer = geo_data_namer or geo_data_namer_factory(geo_approved_dir)()
+    geo_data_namer.set_extension(Path(tile_file).suffix)
+    verify_geo_tif_with_namer(tile_file, geo_data_namer, options=options)
+
+
+@pytest.fixture(scope='module', name='verify_geo_tif')
+def verify_geo_tif_fixture(approved_geo_directory):
     def _verify_fn(tile_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
-        geo_data_namer = options.namer if options else None
-        geo_data_namer = geo_data_namer or geo_data_namer_factory()
-        geo_data_namer.set_extension(Path(tile_file).suffix)
-        verify_geo_tif_with_namer(tile_file, geo_data_namer, options=options)
-
-    return _verify_fn
-
-
-@pytest.fixture(scope='module')
-def verify_geo_tif_with_namer():
-    def _verify_fn(tile_file: PathConvertible,
-                   namer: NamerBase,
-                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
-                   options: Optional[GeoOptions] = None):
         options = options or GeoOptions()
-        tif_comparator = CompareGeoTiffs(options.scrub_tags, options.tolerance)
-        tif_reporter = ReportGeoTiffs(options.scrub_tags, options.tolerance)
-        if options.has_scenario_by_tags():
-            with rasterio.open(tile_file) as rds:
-                namer = options.wrap_namer_in_tags_scenario(namer, rds.tags())
-        options = options.with_comparator(tif_comparator)
-        options = options.with_reporter(tif_reporter)
-        verify_with_namer_and_writer(
-            namer=namer,
-            writer=ExistingFileWriter(tile_file, options),
-            options=options)
-
-    return _verify_fn
-
-
-@pytest.fixture(scope='module')
-def verify_raster_as_geo_tif(verify_geo_tif, tmp_path_factory):
-    def _verify_fn(tile: DataArray,
-                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
-                   options: Optional[GeoOptions] = None):
-        tile_file = tmp_path_factory.mktemp("raster_as_geo_tif") / "raster.tif"
-        options = options or GeoOptions()
-        options.tif_writer(tile_file, tile)
+        options = options.with_approved_directory(approved_geo_directory)
         verify_geo_tif(tile_file, options=options)
 
     return _verify_fn
 
 
-@pytest.fixture(scope='module')
-def verify_geo_zarr(geo_data_namer_factory):
+def verify_geo_tif_with_namer(tile_file: PathConvertible,
+                              namer: NamerBase,
+                              *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                              options: Optional[GeoOptions] = None):
+    options = options or GeoOptions()
+    tif_comparator = CompareGeoTiffs(options.scrub_tags, options.tolerance)
+    tif_reporter = ReportGeoTiffs(options.scrub_tags, options.tolerance)
+    if options.has_scenario_by_tags():
+        with rasterio.open(tile_file) as rds:
+            namer = options.wrap_namer_in_tags_scenario(namer, rds.tags())
+    options = options.with_comparator(tif_comparator)
+    options = options.with_reporter(tif_reporter)
+    verify_with_namer_and_writer(
+        namer=namer,
+        writer=ExistingFileWriter(tile_file, options),
+        options=options)
+
+
+@pytest.fixture(scope='module', name='verify_geo_tif_with_namer')
+def verify_geo_tif_with_namer_fixture():
+    return verify_geo_tif_with_namer
+
+
+def verify_raster_as_geo_tif(tile: DataArray, *, options: Optional[GeoOptions] = None):
+    options = options or GeoOptions()
+    tile_file = options.tmp_directory / "raster.tif"
+    options.tif_writer(tile_file, tile)
+    verify_geo_tif(tile_file, options=options)
+
+
+@pytest.fixture(scope='module', name='verify_raster_as_geo_tif')
+def verify_raster_as_geo_tif_fixture(tmp_path_factory, approved_geo_directory):
+    def _verify_fn(tile: DataArray,
+                   *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                   options: Optional[GeoOptions] = None):
+        options = options or GeoOptions()
+        options = options.with_tmp_directory(tmp_path_factory.mktemp("raster_as_geo_tif")) \
+            .with_approved_directory(approved_geo_directory)
+        verify_raster_as_geo_tif(tile, options=options)
+
+    return _verify_fn
+
+
+def verify_geo_zarr(zarr_archive: PathConvertible,
+                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                    options: Optional[GeoOptions] = None):
+    options = options or GeoOptions()
+    geo_data_namer = options.namer if options else None
+    geo_approved_dir = options.approved_directory if options else None
+    geo_data_namer = geo_data_namer or geo_data_namer_factory(geo_approved_dir)()
+    geo_data_namer.set_extension(Path(zarr_archive).suffix)
+    zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
+    zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
+    options = options.with_comparator(zarr_comparator)
+    options = options.with_reporter(zarr_reporter)
+    verify_with_namer_and_writer(
+        namer=geo_data_namer,
+        writer=ExistingDirWriter(zarr_archive),
+        options=options)
+
+
+@pytest.fixture(scope='module', name='verify_geo_zarr')
+def verify_geo_zarr_fixture(approved_geo_directory):
     def _verify_fn(zarr_archive: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
         options = options or GeoOptions()
-        geo_data_namer = options.namer or geo_data_namer_factory()
-        geo_data_namer.set_extension(Path(zarr_archive).suffix)
-        zarr_comparator = CompareGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
-        zarr_reporter = ReportGeoZarrs(options.scrub_tags, options.scrub_coords, options.tolerance)
-        options = options.with_comparator(zarr_comparator)
-        options = options.with_reporter(zarr_reporter)
-        verify_with_namer_and_writer(
-            namer=geo_data_namer,
-            writer=ExistingDirWriter(zarr_archive),
-            options=options)
+        options = options.with_approved_directory(approved_geo_directory)
+        verify_geo_zarr(zarr_archive, options=options)
 
     return _verify_fn
 
 
-@pytest.fixture(scope='module')
-def verify_geo_nc(geo_data_namer_factory):
+def verify_geo_nc(nc_file: PathConvertible,
+                  *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
+                  options: Optional[GeoOptions] = None):
+    options = options or GeoOptions()
+    geo_data_namer = options.namer if options else None
+    geo_approved_dir = options.approved_directory if options else None
+    geo_data_namer = geo_data_namer or geo_data_namer_factory(geo_approved_dir)()
+    geo_data_namer.set_extension(Path(nc_file).suffix)
+    nc_comparator = CompareGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
+    nc_reporter = ReportGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
+    options = options.with_comparator(nc_comparator)
+    options = options.with_reporter(nc_reporter)
+    verify_with_namer_and_writer(
+        namer=geo_data_namer,
+        writer=ExistingFileWriter(nc_file, options),
+        options=options)
+
+
+@pytest.fixture(scope='module', name='verify_geo_nc')
+def verify_geo_nc_fixture(approved_geo_directory):
     def _verify_fn(nc_file: PathConvertible,
                    *,  # enforce keyword arguments - https://www.python.org/dev/peps/pep-3102/
                    options: Optional[GeoOptions] = None):
         options = options or GeoOptions()
-        geo_data_namer = options.namer or geo_data_namer_factory()
-        geo_data_namer.set_extension(Path(nc_file).suffix)
-        nc_comparator = CompareGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
-        nc_reporter = ReportGeoNcs(options.scrub_tags, options.scrub_coords, options.tolerance)
-        options = options.with_comparator(nc_comparator)
-        options = options.with_reporter(nc_reporter)
-        verify_with_namer_and_writer(
-            namer=geo_data_namer,
-            writer=ExistingFileWriter(nc_file, options),
-            options=options)
+        options = options.with_approved_directory(approved_geo_directory)
+        verify_geo_nc(nc_file, options=options)
 
     return _verify_fn
 
 
-@pytest.fixture
-def verify_data_frame_using(geo_data_namer_factory):
+def verify_data_frame_using(verify_fn, *columns, approved_geo_directory: Optional[Path] = None):
+    def _verify_data_frame(data_frame, *, options: Optional[GeoOptions] = None):
+        options = options or GeoOptions()
+        geo_approved_dir = options.approved_directory or approved_geo_directory
+        base_namer = options.namer or geo_data_namer_factory(geo_approved_dir)()
+
+        def _verify(pack):
+            _, row = pack
+            verify_fn(row['filepath'], options=GeoOptions.from_options(options.with_namer(
+                ScenarioNamer(base_namer, *tuple(row[c] for c in columns))
+            )))
+
+        gather_all_exceptions_and_throw(data_frame.iterrows(), _verify)
+
+    return _verify_data_frame
+
+@pytest.fixture(name='verify_data_frame_using')
+def verify_data_frame_using_fixture(approved_geo_directory):
     def _make_verifier(verify_fn, *columns):
-        def _verify_data_frame(data_frame, *, options: Optional[GeoOptions] = None):
-            options = options or GeoOptions()
-
-            def _verify(pack):
-                _, row = pack
-                verify_fn(row['filepath'], options=GeoOptions.from_options(options.with_namer(
-                    ScenarioNamer(geo_data_namer_factory(), *tuple(row[c] for c in columns))
-                )))
-
-            gather_all_exceptions_and_throw(data_frame.iterrows(), _verify)
-
-        return _verify_data_frame
-
+        return verify_data_frame_using(verify_fn, *columns, approved_geo_directory=approved_geo_directory)
     return _make_verifier
