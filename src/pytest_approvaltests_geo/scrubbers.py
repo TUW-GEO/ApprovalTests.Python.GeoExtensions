@@ -91,7 +91,7 @@ def scrub_all_yeoda_dates(data: str) -> str:
 
 def scrub_all_short_commits(data: str) -> str:
     return create_regex_scrubber(
-        r"[0-9a-fA-F]{7}",
+        r"g?[0-9a-fA-F]{7}",
         lambda t: f"<short_commit_{t}>",
     )(data)
 
